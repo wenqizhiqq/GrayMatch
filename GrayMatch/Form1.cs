@@ -28,6 +28,7 @@ public partial class Form1 : Form
     private NumericUpDown _numThreshold = null!;
     private NumericUpDown _numOverlap = null!;
     private NumericUpDown _numTopN = null!;
+    private CheckBox _chkShape = null!;
     private Panel _canvasPanel = null!;
     private DataGridView _dataGridView = null!;
     private StatusStrip _statusStrip = null!;
@@ -80,6 +81,17 @@ public partial class Form1 : Form
         _numThreshold = CreateNumeric("NCC阈值", 0.0m, 1.0m, 0.5m, 2, ref y);
         _numOverlap = CreateNumeric("最大重叠", 0.0m, 1.0m, 0.25m, 2, ref y);
         _numTopN = CreateNumeric("TopN", 1, 1000, 64, 0, ref y);
+
+        // 形状匹配开关: checked = edge/gradient NCC, unchecked = grayscale NCC.
+        _chkShape = new CheckBox
+        {
+            Text = "形状匹配（边缘）",
+            AutoSize = true,
+            Left = 8,
+            Top = y + 6,
+        };
+        _leftPanel.Controls.Add(_chkShape);
+        y = _chkShape.Top + 28;
 
         // Right panel
         var rightPanel = new Panel { Dock = DockStyle.Fill };
@@ -236,7 +248,7 @@ public partial class Form1 : Form
         List<MatchResult> results;
         try
         {
-            results = await Task.Run(() => _matcher.Match(pyramid, start, end, step, threshold, overlap, topN), token);
+            results = await Task.Run(() => _matcher.Match(pyramid, start, end, step, threshold, overlap, topN, _chkShape.Checked ? 1 : 0), token);
         }
         catch (OperationCanceledException)
         {

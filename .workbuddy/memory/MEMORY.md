@@ -28,13 +28,22 @@ NCC = TM_CCOEFF_NORMED；模板旋转 warpAffine(BORDER_REPLICATE)；非极大�
 - 原生 stderr 被测试宿主吞掉 → 调试写文件。
 - headless 环境无法实跑 GUI，靠 `dotnet build` + `dotnet test` 验证。
 
-## 形状匹配
-- 2026-08-07 短暂加入 Sobel 梯度幅度 NCC（matchMode），但 OpenCV 4.8.0(vc16) 对 `Sobel(..., CV_16S) + magnitude()` 会崩溃（exit 127），改 `CV_32F` 可运行。
-- 2026-08-08 已彻底移除形状匹配，恢复纯灰度 NCC。移除项包括：`gradientMagnitude()`、`gradMode`、`gm_match` 的 `matchMode` 参数、`RotatedTemplateMatcher.MatchMode`、WPF `ChkShapeMode`/`IsShapeMode`。7 参数 API 是最终签名。
+## 形状匹配（当前启用，matchMode=1）
+灰度/形状双模式共用同一套两遍流程，只在喂给 matchTemplate 前把图换成 Sobel 梯度幅度图。
+- 开关链路：WPF `ChkShapeMode`→`IsShapeMode`；WinForms `_chkShape`；`RotatedTemplateMatcher.MatchMode` / `Match(..., matchMode)`；C API `gm_match(..., int matchMode, ...)`；C++ `match(..., int matchMode)` → `gradMode`。
+- `TemplateCache(t, useGradient)`：**先旋转再求梯度**（顺序反了会把边缘抹糊）。
+- 梯度需要施加的 3 处：`coarseSrcForMatch`、全分辨率兜底的 `fullSrc`、每个种子的 `subFine`。
+- **两个致命坑（都踩过）**：
+  1. `Sobel(..., CV_16S)` + `cv::magnitude()` 在 opencv_world480(vc16) 直接崩溃（exit 127，无托管异常）。必须 `CV_32F`。
+  2. `gradientMagnitude` **不能**用 `convertScaleAbs` 转回 CV_8U。3×3 Sobel 幅度可达 ~1020，转 8 位会把强边缘全截断到 255，导致锐利/未旋转目标漏检（0° 目标必挂）。直接返回 **CV_32F**，`matchTemplate` 原生支持，`TM_CCOEFF_NORMED` 对线性缩放不敏感所以零代价。
+- 效果对比（demo，4 目标）：正常光照 灰度 4/4 vs 形状 4/4；强光照梯度+局部反相 灰度 **3/4**（漏检反相目标）vs 形状 **4/4**。耗时两者都约 20 ms。
 
 ## VS 2019+ CS0102 故障排除
 若遇 "MainWindow already contains ..." 类重复成员错误，优先检查是否残留非默认 `obj2`/`bin2` 目录；MSBuild 默认只排除 `obj/**`、`bin/**`，`obj2/**` 里的过期 `.g.cs` 会被编译导致重复定义。应关闭 VS 后删除所有 `obj*`/`bin*` 再重建。
 
-## 验证基线
-全 3 测试 PASS：Can_Detect ~32ms/4；Benchmark（全 360°）~33ms/4；WPF 0 警告 0 错误（需在无沙箱删除钩子的环境完整重建）。
-灰度 NCC demo：4 个旋转目标全部检出，中心误差 <2 px，角度误差 <=2°，内核 ~19 ms。
+## 验证基线（2026-08-08）
+- `dotnet build GrayMatch.slnx`：**0 警告 0 错误**（3 个项目）。
+- `dotnet test`：3/3 PASS（Test1 3ms、Can_Detect 115ms、Benchmark 68ms）。
+- demo（4 个旋转目标 0°/35°/118°/250°）：中心误差 <2 px，角度误差 ≤2°，内核 ~20 ms。
+- 验证套路：把 `RotatedTemplateMatcher.cs`+`MatchResult.cs`+两个原生 DLL 拷到工作区外（`C:\gmrun5`）建控制台 Demo 跑，可绕开沙箱删除钩子。
+- ninja 不在 PATH，实际路径：`C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\Ninja\ninja.exe`。
