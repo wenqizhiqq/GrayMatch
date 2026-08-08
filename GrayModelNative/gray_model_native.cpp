@@ -27,39 +27,13 @@ cv::Mat rotateImage(const cv::Mat& src, double angleDeg, int& newW, int& newH) {
     return dst;
 }
 
-// Sobel gradient-magnitude map, used by shape (edge) matching. Running NCC over
-// this instead of raw intensity makes the score depend on contours rather than
-// absolute brightness, so it tolerates illumination changes and flat-region noise.
-//
-// IMPORTANT: the Sobel output MUST be CV_32F. Using CV_16S and then calling
-// cv::magnitude() crashes (access violation) in the shipped opencv_world480/vc16
-// build, because cv::magnitude only accepts floating-point matrices.
-cv::Mat gradientMagnitude(const cv::Mat& gray) {
-    cv::Mat gx, gy;
-    cv::Sobel(gray, gx, CV_32F, 1, 0, 3);
-    cv::Sobel(gray, gy, CV_32F, 0, 1, 3);
-    cv::Mat mag;
-    cv::magnitude(gx, gy, mag);
-    // Return CV_32F, NOT 8-bit. A 3x3 Sobel magnitude reaches ~1020 on 8-bit
-    // input, so converting back to CV_8U (convertScaleAbs) clips every strong
-    // edge to 255. That flattening destroys the very contrast the shape match
-    // relies on and made sharp, unrotated targets drop out. cv::matchTemplate
-    // accepts CV_32F directly, and TM_CCOEFF_NORMED is scale-invariant, so
-    // keeping full float range costs nothing.
-    return mag;   // CV_32FC1, same size as the input
-}
-
 // Caches rotated templates per angle so each distinct angle is warped only once
 // across the whole match (coarse sweep + every fine window reuses the cache).
-// When `grad` is set, the cached entry is the gradient magnitude of the ROTATED
-// template: rotate first, then differentiate, so the edge map matches what the
-// rotated object really looks like (rotating a gradient map would smear it).
 struct TemplateCache {
     const cv::Mat* tmpl;
-    bool grad;
     std::map<int, cv::Mat> cache;
-    explicit TemplateCache(const cv::Mat* t, bool useGradient = false)
-        : tmpl(t), grad(useGradient) {}
+    explicit TemplateCache(const cv::Mat* t)
+        : tmpl(t) {}
 
     const cv::Mat& get(double angleDeg) {
         int key = static_cast<int>(std::lround(angleDeg * 100.0));
@@ -67,7 +41,6 @@ struct TemplateCache {
         if (it != cache.end()) return it->second;
         int w = 0, h = 0;
         cv::Mat r = rotateImage(*tmpl, angleDeg, w, h);
-        if (grad) r = gradientMagnitude(r);
         auto res = cache.emplace(key, std::move(r));
         return res.first->second;
     }
@@ -222,14 +195,12 @@ public:
     //   - OpenMP-parallel angle loop.
     // A full-resolution pyramid was avoided: at intermediate scales the angle
     // sweep dominates and small-template angles are ambiguous.
-    // matchMode: 0 = grayscale NCC (raw intensity), 1 = shape NCC (edge/gradient).
     std::vector<GmMatchResult> match(int /*pyramidLevels*/, double angleStart, double angleEnd,
                                      double angleStep, double nccThreshold, double maxOverlap,
-                                     int topN, int matchMode) const {
+                                     int topN) const {
         if (sourceGray_.empty() || templateGray_.empty())
             return {};
 
-        const bool gradMode = (matchMode == 1);
 
         const double coarseScale = 0.25;
         const double coarseStep = 15.0;
@@ -254,13 +225,11 @@ public:
         cv::resize(templateGray_, coarseTmpl, cv::Size(), coarseScale, coarseScale, cv::INTER_AREA);
         cv::resize(templateGray_, fineTmpl, cv::Size(), fineScale, fineScale, cv::INTER_AREA);
 
-        TemplateCache coarseCache(&coarseTmpl, gradMode);
+        TemplateCache coarseCache(&coarseTmpl);
         for (double a = angleStart; a <= angleEnd + 1e-6; a += coarseStep)
             coarseCache.get(a);
 
-        // In shape mode the scene is differentiated once per pass; the template
-        // side is differentiated inside the cache (see TemplateCache::get).
-        cv::Mat coarseSrcForMatch = gradMode ? gradientMagnitude(coarseSrc) : coarseSrc;
+        cv::Mat coarseSrcForMatch = coarseSrc;
 
         auto tMatch = now();   // timing starts AFTER the coarse cache is built
 
@@ -273,10 +242,10 @@ public:
         // Safety net: if the coarse grid missed everything, fall back to a full
         // 1-degree sweep over the whole full-resolution image.
         if (seeds.empty() && coarse.empty()) {
-            TemplateCache fullCache(&templateGray_, gradMode);
+            TemplateCache fullCache(&templateGray_);
             for (double a = angleStart; a <= angleEnd + 1e-6; a += angleStep)
                 fullCache.get(a);
-            cv::Mat fullSrc = gradMode ? gradientMagnitude(sourceGray_) : sourceGray_;
+            cv::Mat fullSrc = sourceGray_;
             matchAtLevel(fullSrc, templateGray_, fullCache, 0, 1.0,
                          angleStart, angleEnd, angleStep, nccThreshold, topN * 8, coarse);
             seeds = nonMaxSuppression(coarse, maxOverlap);
@@ -294,7 +263,7 @@ public:
         // angle quantization. That is still well inside the test tolerance and the
         // integer-degree UI display.
         double fineStep = std::max(angleStep, 3.0);
-        TemplateCache fineCache(&fineTmpl, gradMode);
+        TemplateCache fineCache(&fineTmpl);
         for (double a = angleStart; a <= angleEnd + 1e-6; a += fineStep)   // pre-warm @fineStep
             fineCache.get(a);
         auto tFineBuild = now();   // fine-cache build duration = tFineBuild - tAfterPass1
@@ -318,7 +287,6 @@ public:
                 cv::Mat subOrig = sourceGray_(cv::Rect(x1, y1, x2 - x1, y2 - y1));
                 cv::Mat subFine;
                 cv::resize(subOrig, subFine, cv::Size(), fineScale, fineScale, cv::INTER_AREA);
-                if (gradMode) subFine = gradientMagnitude(subFine);
 
                 // Fine search window: coarse step is 15°, so the true angle is at most
                 // 7.5° away from the seed. Use ±9° (with 1.5° safety margin), and
@@ -416,12 +384,12 @@ GRAYMODEL_API int gm_set_template(void* handle, const unsigned char* data,
 
 GRAYMODEL_API int gm_match(void* handle, int pyramidLevels, double angleStart, double angleEnd,
                            double angleStep, double nccThreshold, double maxOverlap, int topN,
-                           int matchMode, GmMatchResult* outResults, int maxResults) {
+                           GmMatchResult* outResults, int maxResults) {
     auto* m = static_cast<GrayModelMatcher*>(handle);
     if (!m || !outResults || maxResults <= 0) return -1;
 
     auto results = m->match(pyramidLevels, angleStart, angleEnd, angleStep,
-                            nccThreshold, maxOverlap, topN, matchMode);
+                            nccThreshold, maxOverlap, topN);
     int n = static_cast<int>(results.size());
     int write = std::min(n, maxResults);
     for (int i = 0; i < write; ++i)

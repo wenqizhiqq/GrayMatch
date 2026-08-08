@@ -17,11 +17,6 @@ public class RotatedTemplateMatcher : IDisposable
     /// UI drawing are never counted.</summary>
     public double LastMatchMs { get; private set; }
 
-    /// <summary>Matching strategy: 0 = grayscale NCC (raw intensity),
-    /// 1 = shape NCC (Sobel gradient / edge map). Shape mode is robust to
-    /// illumination changes because it scores contours, not brightness.</summary>
-    public int MatchMode { get; set; } = 0;
-
     public void LoadSource(string path)
     {
         DisposeSource();
@@ -59,7 +54,6 @@ public class RotatedTemplateMatcher : IDisposable
     /// Rotation-invariant NCC matching. The heavy lifting runs in the native
     /// GrayModelNative DLL (built from C++); this method only marshals image data.
     /// </summary>
-    /// <param name="matchMode">0 = grayscale NCC, 1 = shape (edge) NCC.</param>
     public List<MatchResult> Match(
         int pyramidLevels,
         double angleStart,
@@ -67,8 +61,7 @@ public class RotatedTemplateMatcher : IDisposable
         double angleStep,
         double nccThreshold,
         double maxOverlap,
-        int topN,
-        int matchMode = 0)
+        int topN)
     {
         if (_sourceGray == null || _template == null)
             throw new InvalidOperationException("Source and template must be set before matching.");
@@ -87,7 +80,7 @@ public class RotatedTemplateMatcher : IDisposable
             var buffer = new GmMatchResult[topN];
             int written = gm_match(
                 handle, pyramidLevels, angleStart, angleEnd, angleStep,
-                nccThreshold, maxOverlap, topN, matchMode, buffer, buffer.Length);
+                nccThreshold, maxOverlap, topN, buffer, buffer.Length);
 
             if (written < 0)
                 return new List<MatchResult>();
@@ -160,7 +153,6 @@ public class RotatedTemplateMatcher : IDisposable
         double nccThreshold,
         double maxOverlap,
         int topN,
-        int matchMode,
         [In, Out] GmMatchResult[] outResults,
         int maxResults);
 

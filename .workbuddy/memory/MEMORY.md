@@ -28,7 +28,10 @@ NCC = TM_CCOEFF_NORMED；模板旋转 warpAffine(BORDER_REPLICATE)；非极大�
 - 原生 stderr 被测试宿主吞掉 → 调试写文件。
 - headless 环境无法实跑 GUI，靠 `dotnet build` + `dotnet test` 验证。
 
-## 形状匹配（当前启用，matchMode=1）
+## 形状匹配（已删除 —— 2026-08-08 用户再次要求移除）
+> 历史：用户反复横跳（不需要→需要→又删除）。当前代码是**纯灰度 NCC**，无 matchMode 参数、
+gradientMagnitude、ChkShapeMode/IsShapeMode/_chkShape、MatchMode 属性。
+> 若需重新加回，下面是可复用要点：
 灰度/形状双模式共用同一套两遍流程，只在喂给 matchTemplate 前把图换成 Sobel 梯度幅度图。
 - 开关链路：WPF `ChkShapeMode`→`IsShapeMode`；WinForms `_chkShape`；`RotatedTemplateMatcher.MatchMode` / `Match(..., matchMode)`；C API `gm_match(..., int matchMode, ...)`；C++ `match(..., int matchMode)` → `gradMode`。
 - `TemplateCache(t, useGradient)`：**先旋转再求梯度**（顺序反了会把边缘抹糊）。
@@ -38,10 +41,17 @@ NCC = TM_CCOEFF_NORMED；模板旋转 warpAffine(BORDER_REPLICATE)；非极大�
   2. `gradientMagnitude` **不能**用 `convertScaleAbs` 转回 CV_8U。3×3 Sobel 幅度可达 ~1020，转 8 位会把强边缘全截断到 255，导致锐利/未旋转目标漏检（0° 目标必挂）。直接返回 **CV_32F**，`matchTemplate` 原生支持，`TM_CCOEFF_NORMED` 对线性缩放不敏感所以零代价。
 - 效果对比（demo，4 目标）：正常光照 灰度 4/4 vs 形状 4/4；强光照梯度+局部反相 灰度 **3/4**（漏检反相目标）vs 形状 **4/4**。耗时两者都约 20 ms。
 
+## 沙箱 genie-trash 把 .h/.cs 写成二进制乱码（2026-08-08 实测）
+- 安全删除钩子会把源文件损坏为二进制垃圾（头部是非文本字节，Python 读出来是乱码），但 `git status` 仍显示干净、`git show HEAD:<relpath>` 返回干净源码。
+- **恢复**：`git show HEAD:<relpath>` 取 blob -> Python `io.open(p,'w',encoding='utf-8')` 写回。改 .h/.cs 前若 Read 报"二进制"或 Python 读出乱码，先 `git show HEAD:` 确认是否被钩子损坏，勿在乱码上改。
+- 另：`rm` 被钩子 fail-closed 拒绝，删工作区内辅助脚本/日志会被拦，需用户在正常环境手动删。
+
 ## VS 2019+ CS0102 故障排除
 若遇 "MainWindow already contains ..." 类重复成员错误，优先检查是否残留非默认 `obj2`/`bin2` 目录；MSBuild 默认只排除 `obj/**`、`bin/**`，`obj2/**` 里的过期 `.g.cs` 会被编译导致重复定义。应关闭 VS 后删除所有 `obj*`/`bin*` 再重建。
 
-## 验证基线（2026-08-08）
+## 验证基线（2026-08-08；形状匹配已删除，现为纯灰度 NCC）
+- native 重建：`touch gray_model_native.cpp && ninja` 成功，仅 1 个 C4819 警告（代码页 936 无法显示中文注释，无害），DLL 35840 字节。
+- C# 全量 build/test 须在用户正常环境执行（沙箱 genie-trash 冻结 obj/bin 无法再生）；建议关闭 VS 删所有 obj*/bin* 后 Rebuild。
 - `dotnet build GrayMatch.slnx`：**0 警告 0 错误**（3 个项目）。
 - `dotnet test`：3/3 PASS（Test1 3ms、Can_Detect 115ms、Benchmark 68ms）。
 - demo（4 个旋转目标 0°/35°/118°/250°）：中心误差 <2 px，角度误差 ≤2°，内核 ~20 ms。

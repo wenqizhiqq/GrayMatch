@@ -42,8 +42,7 @@ public class MatcherTests : IDisposable
             angleStep: 5,
             nccThreshold: 0.35,
             maxOverlap: 0.25,
-            topN: 20,
-            matchMode: 0);
+            topN: 20);
         _output.WriteLine($"[native] match took {_matcher.LastMatchMs:F1} ms (pure matching, excl. template cache), {results.Count} results");
 
         Assert.True(results.Count >= 4, $"Expected at least 4 detections, got {results.Count}. Top: {string.Join(" | ", results.Take(10).Select(r => $"{r.Score:F3}@{r.Angle:F0} ({r.CenterX:F0},{r.CenterY:F0})"))}");
@@ -99,8 +98,7 @@ public class MatcherTests : IDisposable
             angleStep: 1,
             nccThreshold: 0.35,
             maxOverlap: 0.25,
-            topN: 50,
-            matchMode: 0);
+            topN: 50);
         _output.WriteLine($"[native] full 360-angle sweep (pyramid=4) took {_matcher.LastMatchMs:F1} ms (pure matching, excl. template cache), {results.Count} results");
 
         Assert.True(results.Count >= 3, $"Expected >=3, got {results.Count}");

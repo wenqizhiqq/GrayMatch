@@ -38,12 +38,7 @@
                   ToolTip="清空匹配框、表格结果，保留原图和模板"/>
 
                     <Separator Margin="0,12,0,6"/>
-                    <Separator Margin="0,12,0,6"/>
-                <TextBlock Text="匹配方式" FontWeight="Bold" FontSize="13" Margin="0,2,0,6"/>
-                <CheckBox x:Name="ChkShapeMode" Content="形状匹配（边缘）"
-                          IsChecked="{Binding IsShapeMode}" Margin="0,2,0,2"/>
-                <TextBlock Text="勾选 = 按轮廓/梯度匹配，抗光照变化；取消 = 灰度 NCC"
-                           FontSize="10" Foreground="Gray" TextWrapping="Wrap" Margin="0,0,0,4"/>
+
 
                 <TextBlock Text="使用说明" FontWeight="Bold" FontSize="13" Margin="0,2,0,6"/>
                     <TextBlock Text="1.打开图像加载原图" FontSize="11" TextWrapping="Wrap"/>

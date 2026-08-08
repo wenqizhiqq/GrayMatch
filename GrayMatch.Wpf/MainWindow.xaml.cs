@@ -72,10 +72,6 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private string _matchMsText = "\u2014";
     public string MatchMsText { get => _matchMsText; set => Set(ref _matchMsText, value); }
 
-    private bool _isShapeMode;
-    /// <summary>Bound to the 形状匹配 checkbox: true = shape/edge NCC, false = grayscale NCC.</summary>
-    public bool IsShapeMode { get => _isShapeMode; set => Set(ref _isShapeMode, value); }
-
     #endregion
 
     private void WireEvents()
