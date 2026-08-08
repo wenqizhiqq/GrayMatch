@@ -1,0 +1,5 @@
+﻿FAIL  D:\wqz\code\GrayMatch\ext\opencv\opencv\sources
+GONE  D:\wqz\code\GrayMatch\GrayMatch\obj
+FAIL  D:\wqz\code\GrayMatch\GrayMatch.Tests\bin
+FAIL  D:\wqz\code\GrayMatch\GrayMatch.Wpf\obj
+FAIL  D:\wqz\code\GrayMatch\GrayModelNative\build-ninja7

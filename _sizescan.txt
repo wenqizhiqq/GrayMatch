@@ -1,0 +1,11 @@
+﻿0 MB  .workbuddy/
+1011.1 MB  ext/
+156.2 MB  GrayMatch/
+161.2 MB  GrayMatch.Tests/
+206.8 MB  GrayMatch.Wpf/
+1.6 MB  GrayModelNative/
+0 MB  .gitattributes
+0 MB  .gitignore
+0 MB  gm_debug.log
+0 MB  GrayMatch.slnx
+0 MB  IDENTITY.md

@@ -1,0 +1,35 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.4" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\GrayMatch\GrayMatch.csproj" />
+  </ItemGroup>
+
+  <!-- Copy the native matcher DLL and its OpenCV runtime into the test output
+       folder, so P/Invoke loads the freshly built native library. -->
+  <Target Name="CopyNativeDeps" AfterTargets="Build">
+    <ItemGroup>
+      <NativeDll Include="..\GrayModelNative\build-ninja7\GrayModelNative.dll" />
+      <NativeDll Include="..\ext\opencv\opencv\build\x64\vc16\bin\opencv_world480.dll" />
+    </ItemGroup>
+    <Copy SourceFiles="@(NativeDll)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" Condition="Exists('%(Identity)')" />
+  </Target>
+
+</Project>

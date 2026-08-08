@@ -1,0 +1,27 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="OpenCvSharp4" Version="4.13.0.20260627" />
+    <PackageReference Include="OpenCvSharp4.Extensions" Version="4.13.0.20260627" />
+    <PackageReference Include="OpenCvSharp4.runtime.win" Version="4.13.0.20260627" />
+  </ItemGroup>
+
+  <!-- Copy the native matcher DLL and its OpenCV runtime into the output folder.
+       GrayModelNative must be built first (see GrayModelNative/build_native.ps1). -->
+  <Target Name="CopyNativeDeps" AfterTargets="Build">
+    <ItemGroup>
+      <NativeDll Include="..\GrayModelNative\build-ninja7\GrayModelNative.dll" />
+      <NativeDll Include="..\ext\opencv\opencv\build\x64\vc16\bin\opencv_world480.dll" />
+    </ItemGroup>
+    <Copy SourceFiles="@(NativeDll)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" Condition="Exists('%(Identity)')" />
+  </Target>
+
+</Project>

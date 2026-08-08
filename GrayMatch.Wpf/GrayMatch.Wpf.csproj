@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="OpenCvSharp4" Version="4.8.0.20230708" />
+    <PackageReference Include="OpenCvSharp4.Extensions" Version="4.8.0.20230708" />
+    <PackageReference Include="OpenCvSharp4.runtime.win" Version="4.8.0.20230708" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\GrayMatch\MatchResult.cs" Link="MatchResult.cs" />
+    <Compile Include="..\GrayMatch\RotatedTemplateMatcher.cs" Link="RotatedTemplateMatcher.cs" />
+  </ItemGroup>
+
+  <Target Name="CopyNativeDeps" AfterTargets="Build">
+    <ItemGroup>
+      <NativeDll Include="..\GrayModelNative\build-ninja7\GrayModelNative.dll" />
+      <NativeDll Include="..\ext\opencv\opencv\build\x64\vc16\bin\opencv_world480.dll" />
+    </ItemGroup>
+    <Copy SourceFiles="@(NativeDll)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" Condition="Exists('%(Identity)')" />
+  </Target>
+
+</Project>

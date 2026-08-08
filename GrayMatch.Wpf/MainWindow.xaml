@@ -1,0 +1,172 @@
+<Window x:Class="GrayMatch.Wpf.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:GrayMatch.Wpf"
+        mc:Ignorable="d"
+        Title="旋转不变 NCC 匹配器 — WPF 演示" Height="820" Width="1280">
+
+    <Window.Resources>
+        <local:AngleSignConverter x:Key="AngleNegate"/>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="220"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="230"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- 左侧工具栏 -->
+        <Border Grid.Column="0" Grid.Row="0" Grid.RowSpan="2"
+            BorderBrush="Gray" BorderThickness="0,0,1,0" Background="#FFF0F0F0">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="6">
+                <StackPanel>
+                    <TextBlock Text="操作" FontWeight="Bold" FontSize="13" Margin="0,2,0,6"/>
+                    <Button x:Name="BtnOpen" Content="打开图像" Height="30" Margin="0,2"
+                  ToolTip="打开待检测原图，支持bmp/jpg/png格式"/>
+                    <Button x:Name="BtnCreateTemplate" Content="创建模板" Height="30" Margin="0,2"
+                  ToolTip="先在图片上鼠标拖拽框选ROI区域，点击此按钮生成匹配模板"/>
+                    <Button x:Name="BtnMatch" Content="执行匹配" Height="30" Margin="0,2"
+                  ToolTip="设置好角度、阈值等参数后，执行旋转NCC模板匹配"/>
+                    <Button x:Name="BtnClear" Content="清除结果" Height="30" Margin="0,2"
+                  ToolTip="清空匹配框、表格结果，保留原图和模板"/>
+
+                    <Separator Margin="0,12,0,6"/>
+                    <TextBlock Text="使用说明" FontWeight="Bold" FontSize="13" Margin="0,2,0,6"/>
+                    <TextBlock Text="1.打开图像加载原图" FontSize="11" TextWrapping="Wrap"/>
+                    <TextBlock Text="1.点击创建模板生成匹配模板" FontSize="11" TextWrapping="Wrap"/>
+                    <TextBlock Text="3.鼠标拖拽框选目标区域" FontSize="11" TextWrapping="Wrap"/>
+                    <TextBlock Text="4.调整角度、阈值等参数" FontSize="11" TextWrapping="Wrap"/>
+                    <TextBlock Text="5.执行匹配查看检测结果" FontSize="11" TextWrapping="Wrap"/>
+                    <TextBlock Text="6.清除结果可重置，重新选模板" FontSize="11" TextWrapping="Wrap"/>
+                    <Separator Margin="0,12,0,6"/>
+                    <TextBlock Text="图像信息" FontWeight="Bold" FontSize="13" Margin="0,2,0,6"/>
+                    <TextBlock Text="图像分辨率" Margin="0,2,0,0"/>
+                    <TextBlock Text="{Binding ImageSizeText}" Margin="0,0,0,6" FontWeight="SemiBold"/>
+                    <TextBlock Text="模板分辨率" Margin="0,2,0,0"/>
+                    <TextBlock Text="{Binding TemplateSizeText}" Margin="0,0,0,6" FontWeight="SemiBold"/>
+                    <TextBlock Text="匹配耗时" Margin="0,2,0,0"/>
+                    <TextBlock Text="{Binding MatchMsText}" Margin="0,0,0,6" FontWeight="SemiBold"/>
+
+                    <Separator Margin="0,12,0,6"/>
+                    <TextBlock Text="匹配参数" FontWeight="Bold" FontSize="13" Margin="0,2,0,6"/>
+                    <TextBlock Text="起始角度(度) 范围‑180~180" Margin="0,2,0,0"/>
+                    <TextBox x:Name="TbAngleStart" Text="-180" Margin="0,0,0,6"/>
+                    <TextBlock Text="终止角度(度)" Margin="0,2,0,0"/>
+                    <TextBox x:Name="TbAngleEnd" Text="180" Margin="0,0,0,6"/>
+                    <TextBlock Text="角度步长(度) 越大速度越快精度越低" Margin="0,2,0,0"/>
+                    <TextBox x:Name="TbAngleStep" Text="1" Margin="0,0,0,6"/>
+                    <TextBlock Text="NCC相似度阈值 0~1，数值越高越严格" Margin="0,2,0,0"/>
+                    <TextBox x:Name="TbThreshold" Text="0.5" Margin="0,0,0,6"/>
+                    <TextBlock Text="最大允许重叠 过滤重复匹配结果" Margin="0,2,0,0"/>
+                    <TextBox x:Name="TbOverlap" Text="0.25" Margin="0,0,0,6"/>
+                    <TextBlock Text="最多输出匹配结果数量" Margin="0,2,0,0"/>
+                    <TextBox x:Name="TbTopN" Text="64" Margin="0,0,0,6"/>
+                    <TextBlock Text="金字塔层级 层级越高速度越快" Margin="0,2,0,0"/>
+                    <ComboBox x:Name="CmbPyramid" SelectedIndex="3" IsReadOnly="True" Margin="0,0,0,4">
+                        <ComboBoxItem>1</ComboBoxItem>
+                        <ComboBoxItem>2</ComboBoxItem>
+                        <ComboBoxItem>3</ComboBoxItem>
+                        <ComboBoxItem>4</ComboBoxItem>
+                        <ComboBoxItem>5</ComboBoxItem>
+                        <ComboBoxItem>6</ComboBoxItem>
+                    </ComboBox>
+
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+
+        <!-- 图像显示画布 -->
+        <Border Grid.Column="1" Grid.Row="0" Background="Black">
+            <Viewbox Stretch="Uniform">
+                <Grid x:Name="ImageGrid"
+              Width="{Binding ImageWidth, FallbackValue=1}"
+              Height="{Binding ImageHeight, FallbackValue=1}"
+              Cursor="Cross"
+              MouseLeftButtonDown="ImageGrid_MouseLeftButtonDown"
+              MouseMove="ImageGrid_MouseMove"
+              MouseLeftButtonUp="ImageGrid_MouseLeftButtonUp">
+                    <Image x:Name="SourceImage" Source="{Binding SourceBitmap}" Stretch="None"/>
+                    <Canvas IsHitTestVisible="False">
+                        <!-- ROI选择框 -->
+                        <Rectangle x:Name="RoiRect"
+                       Canvas.Left="{Binding RoiLeft}"
+                       Canvas.Top="{Binding RoiTop}"
+                       Width="{Binding RoiWidth}"
+                       Height="{Binding RoiHeight}"
+                       Stroke="Lime" StrokeThickness="2" Fill="Transparent"/>
+
+                        <!-- 匹配结果渲染 -->
+                        <ItemsControl ItemsSource="{Binding Results}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <Canvas/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemContainerStyle>
+                                <Style TargetType="ContentPresenter">
+                                    <Setter Property="Canvas.Left" Value="{Binding LeftTopX}"/>
+                                    <Setter Property="Canvas.Top" Value="{Binding LeftTopY}"/>
+                                </Style>
+                            </ItemsControl.ItemContainerStyle>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Canvas>
+                                        <Rectangle Canvas.Left="0" Canvas.Top="0"
+                               Width="{Binding TemplateWidth}"
+                               Height="{Binding TemplateHeight}"
+                               Stroke="Lime" StrokeThickness="2" Fill="Transparent"
+                               RenderTransformOrigin="0.5,0.5">
+                                            <Rectangle.RenderTransform>
+                                                <RotateTransform Angle="{Binding Angle, Converter={StaticResource AngleNegate}}"/>
+                                            </Rectangle.RenderTransform>
+                                        </Rectangle>
+                                        <TextBlock Canvas.Left="0" Canvas.Top="-38"
+                               Foreground="Lime" FontSize="16" FontWeight="Bold"
+                               Text="{Binding Score, StringFormat='相似度:{0:F3}'}"/>
+                                        <TextBlock Canvas.Left="0" Canvas.Top="-20"
+                               Foreground="Yellow" FontSize="16" FontWeight="Bold"
+                               Text="{Binding Angle, StringFormat='角度:{0:F0}°'}"/>
+                                    </Canvas>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Canvas>
+                </Grid>
+            </Viewbox>
+        </Border>
+
+        <!-- 匹配结果表格 -->
+        <DataGrid Grid.Column="1" Grid.Row="1"
+              ItemsSource="{Binding Results}"
+              AutoGenerateColumns="False"
+              IsReadOnly="True"
+              SelectionMode="Single"
+              CanUserAddRows="False"
+              CanUserDeleteRows="False">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="序号" Binding="{Binding Index}" Width="40"/>
+                <DataGridTextColumn Header="NCC分数" Binding="{Binding Score, StringFormat=F4}" Width="80"/>
+                <DataGridTextColumn Header="中心X" Binding="{Binding CenterX, StringFormat=F2}" Width="80"/>
+                <DataGridTextColumn Header="中心Y" Binding="{Binding CenterY, StringFormat=F2}" Width="80"/>
+                <DataGridTextColumn Header="角度°" Binding="{Binding Angle, StringFormat=F1}" Width="60"/>
+                <DataGridTextColumn Header="模板宽" Binding="{Binding TemplateWidth}" Width="70"/>
+                <DataGridTextColumn Header="模板高" Binding="{Binding TemplateHeight}" Width="70"/>
+                <DataGridTextColumn Header="左上X" Binding="{Binding LeftTopX}" Width="70"/>
+                <DataGridTextColumn Header="左上Y" Binding="{Binding LeftTopY}" Width="70"/>
+                <DataGridTextColumn Header="金字塔层" Binding="{Binding Level}" Width="70"/>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <!-- 底部状态栏 -->
+        <StatusBar Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="2">
+            <TextBlock Text="{Binding StatusText}" Padding="6,2"/>
+        </StatusBar>
+    </Grid>
+</Window>

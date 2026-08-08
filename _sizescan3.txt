@@ -1,0 +1,10 @@
+﻿25.1 MB  bin/
+9.9 MB  etc/
+8.1 MB  include/
+81 MB  java/
+32.8 MB  python/
+495.9 MB  x64/
+0 MB  LICENSE
+0 MB  OpenCVConfig-version.cmake
+0 MB  OpenCVConfig.cmake
+0 MB  setup_vars_opencv4.cmd
