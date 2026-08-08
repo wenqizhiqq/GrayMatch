@@ -28,5 +28,13 @@ NCC = TM_CCOEFF_NORMED；模板旋转 warpAffine(BORDER_REPLICATE)；非极大�
 - 原生 stderr 被测试宿主吞掉 → 调试写文件。
 - headless 环境无法实跑 GUI，靠 `dotnet build` + `dotnet test` 验证。
 
+## 形状匹配
+- 2026-08-07 短暂加入 Sobel 梯度幅度 NCC（matchMode），但 OpenCV 4.8.0(vc16) 对 `Sobel(..., CV_16S) + magnitude()` 会崩溃（exit 127），改 `CV_32F` 可运行。
+- 2026-08-08 已彻底移除形状匹配，恢复纯灰度 NCC。移除项包括：`gradientMagnitude()`、`gradMode`、`gm_match` 的 `matchMode` 参数、`RotatedTemplateMatcher.MatchMode`、WPF `ChkShapeMode`/`IsShapeMode`。7 参数 API 是最终签名。
+
+## VS 2019+ CS0102 故障排除
+若遇 "MainWindow already contains ..." 类重复成员错误，优先检查是否残留非默认 `obj2`/`bin2` 目录；MSBuild 默认只排除 `obj/**`、`bin/**`，`obj2/**` 里的过期 `.g.cs` 会被编译导致重复定义。应关闭 VS 后删除所有 `obj*`/`bin*` 再重建。
+
 ## 验证基线
-全 3 测试 PASS：Can_Detect 32ms/4；Benchmark（全 360°）33ms/4；WPF 0 警告 0 错误。
+全 3 测试 PASS：Can_Detect ~32ms/4；Benchmark（全 360°）~33ms/4；WPF 0 警告 0 错误（需在无沙箱删除钩子的环境完整重建）。
+灰度 NCC demo：4 个旋转目标全部检出，中心误差 <2 px，角度误差 <=2°，内核 ~19 ms。
