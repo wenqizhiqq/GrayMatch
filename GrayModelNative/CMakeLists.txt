@@ -23,6 +23,6 @@ target_link_libraries(GrayModelNative PRIVATE ${OpenCV_LIBS})
 # OpenMP for a parallel angle sweep (big speedup on multi-core).
 # vcomp.lib is the MSVC OpenMP import library.
 if(MSVC)
-    add_compile_options(/openmp)
+    add_compile_options(/openmp /utf-8)
     target_link_libraries(GrayModelNative PRIVATE vcomp.lib)
 endif()

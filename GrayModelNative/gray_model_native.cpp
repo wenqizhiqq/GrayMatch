@@ -6,6 +6,7 @@
 #include <cmath>
 #include <map>
 #include <chrono>
+#include <omp.h>
 
 namespace {
 
@@ -375,12 +376,19 @@ public:
         // coarse-to-full mapping error stays inside the fine-search margin.
         const int minTplDim = std::min(templateGray_.cols, templateGray_.rows);
         const int minSrcDim = std::min(sourceGray_.cols, sourceGray_.rows);
-        int L = pyramidLevels + 1;
-        while (L < 6 && ((minSrcDim >> (L + 1)) >= 64)) ++L;
-        // Keep the coarsest template meaningful for NCC: deeper levels (L>=3) need
-        // at least 6px on the short edge; L=2 can still go down to 4px so tiny
-        // templates (e.g. 32x18) keep a useful speedup without collapsing to L=1.
-        while (L > 1 && (minTplDim >> L) < (L >= 3 ? 6 : 4)) --L;
+        // 金字塔深度直接由用户设置的 pyramidLevels 决定（即粗层数量 L），
+        // 仅在粗模板/粗图太小（NCC 不可靠）时才向下收缩。
+        // 注意：不要按图像尺寸“向上生长” L —— 那样会无视用户的层级设置，
+        // 把不同的金字塔层级都收敛到同一深度，导致改层级耗时不变（即此前的问题）。
+        int L = pyramidLevels;
+        while (L > 1) {
+            int tShort = minTplDim >> L;
+            int sShort = minSrcDim >> L;
+            if (sShort < 32) { --L; continue; }
+            if (L >= 3 && tShort < 6) { --L; continue; }
+            if (L == 2 && tShort < 4) { --L; continue; }
+            break;
+        }
         if (L < 1) L = 1;
 
         // Coarse angular step at the deepest level (legacy's 15 deg). The progressive
