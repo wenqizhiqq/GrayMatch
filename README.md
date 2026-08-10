@@ -1,6 +1,4 @@
-
-
-![image-20260810134639107](README.assets/image-20260810134639107.png)WPF+C++自研旋转NCC模板匹配源码 工业机器视觉定位 金字塔多级加速 OpenMP并行 非OpenCV自带接口
+![image-20260810134835375](README.assets/image-20260810134835375.png)WPF+C++自研旋转NCC模板匹配源码 工业机器视觉定位 金字塔多级加速 OpenMP并行 非OpenCV自带接口
 标签
 WPF、NCC模板匹配、C++算法、旋转不变匹配、机器视觉、OpenCV、工控上位机、Mark点定位、视觉检测、金字塔匹配
 
