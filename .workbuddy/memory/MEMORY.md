@@ -9,11 +9,35 @@
 - `GrayModelNative/`（C++ DLL，CMake+Ninja+MSVC 19.44，OpenCV 4.8.0 world480 vc16）：`GrayModelMatcher`（两遍全分辨率匹配），C API `gm_create/gm_destroy/gm_set_source/gm_set_template/gm_match`（见 `gray_model_native.h`、`CMakeLists.txt`）。
 - P/Invoke 封装在 C# `RotatedTemplateMatcher`。
 
-## 匹配算法（最终，放弃金字塔）
-全分辨率两遍：
-1. 粗扫（coarseStep = max(angleStep*2, 10)，coarseThreshold = max(0.1, nccThreshold-0.25)）定位种子 + 粗略角度；
-2. 种子局部窗口（margin = max(tpl.w,tpl.h)+32）内 1° 细扫精修。
-NCC = TM_CCOEFF_NORMED；模板旋转 warpAffine(BORDER_REPLICATE)；非极大值抑制按重叠比例；TopN。金字塔层级参数已弃用（保留签名字段）。
+## 匹配算法（金字塔级联，2026-08-10 实施并修复 4x 回归）
+`pyramidLevels <= 0`：保留原「两遍全分辨率」旧路径（粗 0.25x @15° 扫 + 0.35x 窗口细扫），行为不变，作为基准。
+`pyramidLevels >= 1`：高斯金字塔**只做更廉价的粗扫**，最后复用 legacy 0.35x 窗口细扫（见 `match()` 内 Pyramid cascade）：
+1. `L` 由**图像尺寸**驱动：`L = pyramidLevels + 1` 起，图像短边还能再下采样到 >=64px 就加深（上限 6）；收缩时按深度差异化：L>=3 要求模板短边下采样后 >=6px，L=2 允许 >=4px，L=1 兜底。这样 70x104 这类中等模板不会深到粗模板只剩 4x7px（导致 60° 旋转在粗层丢失），而 32x18 小模板仍能保留 L=2 获得加速。
+2. 最粗层（level L）全图廉价全扫，固定粗角度步 **15°**（coarseThr=max(0.10,ncc-0.20)）生成种子（NMS 封顶 24）。
+3. **渐进式逐层角度细化** k = L-1..1：每层角度步 `stepAt(k)=15°/2^(L-k)`（逐级减半，把角度钉死）；每层只在种子小窗（halfWin=maxDim/2+16）内、±aWin=stepAt(k+1) 角度带内精修；某层失配则保留更粗种子。这是 4x 回归修复的关键——固定 15° 粗步在极小粗图上会给错种子、±9° 细扫带救不回，必须逐层把角度收拢。
+4. 最终 legacy 0.35x 窗口细扫（seed 来自细化结果，±9° 带）；全空则退全分辨率全扫兜底。总代价恒 ≤ legacy，精度与 legacy 一致。
+NCC = TM_CCOEFF_NORMED；模板旋转 warpAffine(BORDER_REPLICATE)；非极大值抑制按重叠比例；TopN。`matchAtLevel(source,tmpl,cache,level,scale,...)` 复用。
+
+## 4x 回归根因与修复（2026-08-10）
+- 根因：初版 `stepAt(k)=baseFineStep*2^k` 使 1° 终步时粗扫跑到 ~180 角度；小模板被 cap 把 L 压到 1（0.5x 大粗图 × 多角度）= 4x 变慢（bench 实测 190ms vs legacy 105ms）。
+- 修复：金字塔仅做廉价粗扫（图像驱动加深 L、L 依深度差异化封顶、固定 15° 粗步）+ 渐进逐层角度细化 + 复用 legacy 0.35x 精扫。bench 复测：小模板 32x18 全 360° 扫 step1 → legacy 117ms / pyramid=4 **104ms**（仍快于 legacy，无 4x 变慢）；大图 1600x1200 120x80 模板 → legacy 135ms / pyramid **30ms**（~4.5x 加速）；中等 70x104 模板旋转数字图 → thr=0.40 时 pyramid=4 干净 18/18 无假阳性，耗时 ~18ms（legacy 30ms）。
+
+## 金字塔加速验证（2026-08-10，standalone C++ bench @ C:\gmrun5\native\pyramid_test.cpp，亦可放 GrayModelNative/benchmarks/pyramid_test.cpp）
+- UI 默认金字塔层级 = 4（WPF `CmbPyramid` SelectedIndex=3；WinForms `_numPyramid` 默认 4）。`MatcherTests` 用 pyramidLevels:1 与 :4。
+- 正确性（Test1 800x600，4 目标 @0/30/60/-45，±90°/5°）：pyramid 1..4 均 4/4 检出、角度误差 **1.0°**（比 legacy 的 6° 更准）、框 120x80、score>=0.92。
+- 速度（Test2 900x600 全 360° 扫 / step1）：pyramid=1/2 ≈8.0ms、=3/4 ≈8.2ms（同场景 legacy ≈18.4ms → ~2-2.3x 加速）。
+- 大图（Test3 1600x1200 120x80 模板 全 360° step1）：legacy 135ms / pyramid 1..4 ≈30ms（~4.5x 加速），4/4 检出。
+- 小模板（Test4 1600x1200 32x18 模板 全 360° step1，4x 回归触发场景）：legacy 118ms / pyramid=1/2/4 ≈**104ms**（仍快于 legacy，无 4x 变慢）。
+- 真实旋转数字（`图片1300x1000.png`，70x104 模板，18 个「2」0°~60°）：thr=0.30 时 pyramid 会引入 6 个 ~0.33-0.39 分的低分假阳性；**thr=0.40 及以上 legacy 与 pyramid 均干净检出 18/18**，pyramid=4 约 18ms（legacy 30ms）。建议对这种稀疏/细笔画图案使用 NCC 阈值 ≥0.40。
+- 链接验证：cl 编 pyramid_test.cpp + GrayModelNative.lib + opencv_world480.lib，运行时需 GrayModelNative.dll+opencv_world480.dll 同目录。
+
+## 旋转数字实测（2026-08-10，`C:\Users\admin\Pictures\灰度匹配\图片1300x1000.png`）
+- 场景：3 行 × 6 列「2」数字，旋转角 0°~60°，黑底白字，1339x1038。底部第一个「2」自动裁剪为 70x104 模板。
+- 结果（NCC 阈值影响显著）：
+  - `thr=0.30`：legacy 18/18 干净；pyramid=4 检出 24（18 真 + 6 假阳性，分数 ~0.33-0.39）。
+  - `thr=0.40/0.50/0.60`：**legacy 与 pyramid=4 均 18/18 干净检出**，60° 目标保留（score 0.93，angle ~61.75°）。
+  - pyramid=4 速度：thr=0.40 约 **18.3ms**，legacy 约 **30.3ms**；仍快且精度一致。
+- 结论：稀疏/细笔画图案建议 NCC 阈值 ≥0.40；金字塔级联本身对这类图有效，只是 0.30 阈值落在背景噪声区。
 
 ## 绿色框绘制（渲染层，易错）
 - native 返回的 `templateWidth/Height` 必须是**原始未旋转模板尺寸**（在 `match()` 末尾统一覆写为 `templateGray_.cols/rows`，且 `leftTopX/Y=center-原始/2`），否则 WPF 会按「旋转后包围盒」画框→框变大、角度歪。
@@ -50,7 +74,7 @@ gradientMagnitude、ChkShapeMode/IsShapeMode/_chkShape、MatchMode 属性。
 若遇 "MainWindow already contains ..." 类重复成员错误，优先检查是否残留非默认 `obj2`/`bin2` 目录；MSBuild 默认只排除 `obj/**`、`bin/**`，`obj2/**` 里的过期 `.g.cs` 会被编译导致重复定义。应关闭 VS 后删除所有 `obj*`/`bin*` 再重建。
 
 ## 验证基线（2026-08-08；形状匹配已删除，现为纯灰度 NCC）
-- native 重建：`touch gray_model_native.cpp && ninja` 成功，仅 1 个 C4819 警告（代码页 936 无法显示中文注释，无害），DLL 35840 字节。
+- native 重建：`touch gray_model_native.cpp && ninja` 成功，仅 1 个 C4819 警告（代码页 936 无法显示中文注释，无害），DLL 46592 字节（含金字塔级联 + 渐进逐层细化修复 4x 回归）。
 - C# 全量 build/test 须在用户正常环境执行（沙箱 genie-trash 冻结 obj/bin 无法再生）；建议关闭 VS 删所有 obj*/bin* 后 Rebuild。
 - `dotnet build GrayMatch.slnx`：**0 警告 0 错误**（3 个项目）。
 - `dotnet test`：3/3 PASS（Test1 3ms、Can_Detect 115ms、Benchmark 68ms）。

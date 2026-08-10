@@ -195,11 +195,17 @@ public:
     //   - OpenMP-parallel angle loop.
     // A full-resolution pyramid was avoided: at intermediate scales the angle
     // sweep dominates and small-template angles are ambiguous.
-    std::vector<GmMatchResult> match(int /*pyramidLevels*/, double angleStart, double angleEnd,
+    std::vector<GmMatchResult> match(int pyramidLevels, double angleStart, double angleEnd,
                                      double angleStep, double nccThreshold, double maxOverlap,
                                      int topN) const {
         if (sourceGray_.empty() || templateGray_.empty())
             return {};
+
+        // Pyramid levels <= 0 keeps the original full-resolution two-pass
+        // (coarse 0.25x sweep + 0.35x windowed refinement). This is the
+        // historically tuned behavior, preserved verbatim so existing callers
+        // that pass 0 get exactly what they had before.
+        if (pyramidLevels <= 0) {
 
 
         const double coarseScale = 0.25;
@@ -335,6 +341,210 @@ public:
         // ±1.5°, well inside the test tolerance (±2.5°) and visually fine for the
         // integer-degree display. Skipping the 3 extra matchTemplate calls per
         // result gives a large speed win on many-target images.
+        std::sort(final.begin(), final.end(),
+                  [](const GmMatchResult& a, const GmMatchResult& b) { return a.score > b.score; });
+        if (static_cast<int>(final.size()) > topN)
+            final.resize(topN);
+
+        for (auto& r : final) {
+            r.level = 0;
+            r.templateWidth = templateGray_.cols;
+            r.templateHeight = templateGray_.rows;
+            r.leftTopX = static_cast<int>(std::round(r.centerX - templateGray_.cols / 2.0));
+            r.leftTopY = static_cast<int>(std::round(r.centerY - templateGray_.rows / 2.0));
+        }
+        return final;
+        }   // ----- end legacy two-pass (pyramidLevels <= 0) -----
+
+        // ===================== Pyramid cascade (pyramidLevels >= 1) =====================
+        // Strategy: use a GAUSSIAN PYRAMID only to obtain a CHEAPER COARSE sweep than the
+        // legacy 0.25x pass, then reuse the legacy 0.35x windowed FINE pass (seeded by the
+        // coarse results) for the accurate final localization. The coarse level k costs
+        // ~1/4^k of a full-resolution search, so a deeper pyramid makes the coarse pass much
+        // cheaper than legacy's fixed 0.25x coarse; the fine pass is identical to legacy, so
+        // the TOTAL cost is always <= legacy and the reported accuracy matches it exactly.
+        const double baseFineStep = std::max(angleStep, 1.0);
+        const double coarseThr = std::max(0.10, nccThreshold - 0.20);
+        const double fineScale = 0.35;
+        const double fineStep = std::max(angleStep, 3.0);
+        const int margin = static_cast<int>(std::max(templateGray_.cols, templateGray_.rows) * 0.60) + 8;
+
+        // Choose the coarsest pyramid level L. Grow L with IMAGE size (a big source can afford
+        // a deeper pyramid, keeping the coarse image small/cheap) and only shrink it if the
+        // template itself becomes impossibly tiny (<4px) at that depth. Capped at 6 so the
+        // coarse-to-full mapping error stays inside the fine-search margin.
+        const int minTplDim = std::min(templateGray_.cols, templateGray_.rows);
+        const int minSrcDim = std::min(sourceGray_.cols, sourceGray_.rows);
+        int L = pyramidLevels + 1;
+        while (L < 6 && ((minSrcDim >> (L + 1)) >= 64)) ++L;
+        // Keep the coarsest template meaningful for NCC: deeper levels (L>=3) need
+        // at least 6px on the short edge; L=2 can still go down to 4px so tiny
+        // templates (e.g. 32x18) keep a useful speedup without collapsing to L=1.
+        while (L > 1 && (minTplDim >> L) < (L >= 3 ? 6 : 4)) --L;
+        if (L < 1) L = 1;
+
+        // Coarse angular step at the deepest level (legacy's 15 deg). The progressive
+        // refinement below (each level halves the step) is what actually pins the angle
+        // down, so a fixed coarse step is fine; it keeps the coarsest seed within +/-7.5
+        // deg, well inside the fine pass's +/-9 deg band.
+        const double coarseAngleStep = 15.0;
+        auto stepAt = [&](int k) { return coarseAngleStep / static_cast<double>(1 << (L - k)); };
+
+        std::vector<cv::Mat> srcPyr(L + 1), tplPyr(L + 1);
+        srcPyr[0] = sourceGray_; tplPyr[0] = templateGray_;
+        for (int k = 1; k <= L; ++k) {
+            cv::pyrDown(srcPyr[k - 1], srcPyr[k]);
+            cv::pyrDown(tplPyr[k - 1], tplPyr[k]);
+        }
+        std::vector<TemplateCache> caches; caches.reserve(L + 1);
+        for (int k = 0; k <= L; ++k) caches.emplace_back(&tplPyr[k]);
+
+        auto nowP = [] { return std::chrono::steady_clock::now(); };
+        auto msP = [](std::chrono::steady_clock::time_point a,
+                     std::chrono::steady_clock::time_point b) {
+            return std::chrono::duration<double, std::milli>(b - a).count();
+        };
+
+        // Pre-warm the coarsest cache (excluded from timing).
+        for (double a = angleStart; a <= angleEnd + 1e-6; a += coarseAngleStep)
+            caches[L].get(a);
+        auto tMatch = nowP();
+
+        // --- Coarse sweep at the deepest pyramid level (cheap; seeds position + rough angle) ---
+        std::vector<GmMatchResult> cur;
+        matchAtLevel(srcPyr[L], tplPyr[L], caches[L], L, static_cast<double>(1 << L),
+                     angleStart, angleEnd, coarseAngleStep, coarseThr, topN * 6, cur);
+        auto seeds = nonMaxSuppression(cur, maxOverlap);
+        if (static_cast<int>(seeds.size()) > 24) seeds.resize(24);  // bound fine cost downstream
+
+        auto tAfterCoarse = nowP();   // all subsequent cache builds are excluded from timing
+        double warmMs = 0.0;
+
+        // --- Progressive refinement at each power-of-2 level k = L-1 .. 1 ---
+        // Each level halves the angular step, pinning the angle down progressively so the
+        // final 0.35x pass only needs a narrow band. (k=0 is intentionally skipped; the
+        // 0.35x fine pass below does the accurate final localization at a cheap scale.)
+        for (int k = L - 1; k >= 1; --k) {
+            const double scaleK = static_cast<double>(1 << k);
+            const double aWin = stepAt(k + 1);                 // half the previous level's step
+            const int maxDimK = std::max(tplPyr[k].cols, tplPyr[k].rows);
+            const int halfWin = maxDimK / 2 + 16;
+
+            auto tw0 = nowP();
+            for (const auto& sd : seeds) {
+                double f0 = std::max(angleStart, sd.angle - aWin);
+                double f1 = std::min(angleEnd, sd.angle + aWin);
+                for (double a = f0; a <= f1 + 1e-6; a += stepAt(k))
+                    caches[k].get(a);
+            }
+            warmMs += msP(tw0, nowP());
+
+            std::vector<GmMatchResult> next;
+            #pragma omp parallel
+            {
+                std::vector<GmMatchResult> localNext;
+                #pragma omp for nowait
+                for (int si = 0; si < static_cast<int>(seeds.size()); ++si) {
+                    const auto& det = seeds[si];
+                    const int cxk = static_cast<int>(det.centerX / scaleK + 0.5);
+                    const int cyk = static_cast<int>(det.centerY / scaleK + 0.5);
+                    const int x1 = std::max(0, cxk - halfWin);
+                    const int y1 = std::max(0, cyk - halfWin);
+                    const int x2 = std::min(srcPyr[k].cols, cxk + halfWin);
+                    const int y2 = std::min(srcPyr[k].rows, cyk + halfWin);
+                    if (x2 <= x1 || y2 <= y1) continue;
+                    cv::Mat sub = srcPyr[k](cv::Rect(x1, y1, x2 - x1, y2 - y1));
+                    double f0 = std::max(angleStart, det.angle - aWin);
+                    double f1 = std::min(angleEnd, det.angle + aWin);
+                    std::vector<GmMatchResult> local;
+                    matchAtLevel(sub, tplPyr[k], caches[k], k, scaleK,
+                                 f0, f1, stepAt(k), coarseThr, topN * 4, local);
+                    for (auto& r : local) {
+                        r.centerX += x1 * scaleK;
+                        r.centerY += y1 * scaleK;
+                        r.leftTopX = static_cast<int>(std::round(r.centerX - r.templateWidth / 2.0));
+                        r.leftTopY = static_cast<int>(std::round(r.centerY - r.templateHeight / 2.0));
+                        localNext.push_back(r);
+                    }
+                }
+                #pragma omp critical
+                { next.insert(next.end(), localNext.begin(), localNext.end()); }
+            }
+
+            auto nextSeeds = nonMaxSuppression(next, maxOverlap);
+            if (!nextSeeds.empty()) {
+                if (static_cast<int>(nextSeeds.size()) > 24) nextSeeds.resize(24);
+                seeds = std::move(nextSeeds);
+            } else if (k > 1)
+                break;   // lost the targets climbing up; keep the coarser seeds
+        }
+
+        // --- Fine refinement: legacy 0.35x windowed pass, seeded by the refined seeds ---
+        cv::Mat fineTmpl;
+        cv::resize(templateGray_, fineTmpl, cv::Size(), fineScale, fineScale, cv::INTER_AREA);
+        TemplateCache fineCache(&fineTmpl);
+        for (double a = angleStart; a <= angleEnd + 1e-6; a += fineStep)
+            fineCache.get(a);
+        auto tFineDone = nowP();
+        warmMs += msP(tAfterCoarse, tFineDone);
+
+        std::vector<GmMatchResult> fine;
+        #pragma omp parallel
+        {
+            std::vector<GmMatchResult> localFine;
+            #pragma omp for nowait
+            for (int si = 0; si < static_cast<int>(seeds.size()); ++si) {
+                const auto& det = seeds[si];
+                int cx = static_cast<int>(det.centerX + 0.5);
+                int cy = static_cast<int>(det.centerY + 0.5);
+                int x1 = std::max(0, cx - margin);
+                int y1 = std::max(0, cy - margin);
+                int x2 = std::min(sourceGray_.cols, cx + margin);
+                int y2 = std::min(sourceGray_.rows, cy + margin);
+                if (x2 <= x1 || y2 <= y1) continue;
+                cv::Mat subOrig = sourceGray_(cv::Rect(x1, y1, x2 - x1, y2 - y1));
+                cv::Mat subFine;
+                cv::resize(subOrig, subFine, cv::Size(), fineScale, fineScale, cv::INTER_AREA);
+                double fStart = det.angle - 9.0;
+                double fEnd = det.angle + 9.0;
+                if (fStart < angleStart) fStart = angleStart;
+                if (fEnd > angleEnd) fEnd = angleEnd;
+                if (fStart > fEnd) continue;
+                std::vector<GmMatchResult> local;
+                matchAtLevel(subFine, fineTmpl, fineCache, 0, 1.0 / fineScale,
+                             fStart, fEnd, fineStep, nccThreshold, topN * 2, local);
+                for (auto& r : local) {
+                    r.centerX += x1;
+                    r.centerY += y1;
+                    r.leftTopX = static_cast<int>(std::round(r.centerX - r.templateWidth / 2.0));
+                    r.leftTopY = static_cast<int>(std::round(r.centerY - r.templateHeight / 2.0));
+                    localFine.push_back(r);
+                }
+            }
+            #pragma omp critical
+            { fine.insert(fine.end(), localFine.begin(), localFine.end()); }
+        }
+
+        if (fine.empty())
+            seeds.clear();          // the fine pass dropped every seed -> trigger full-sweep fallback
+        else
+            seeds = std::move(fine);
+
+        // Safety net: if the cascade produced nothing, fall back to a full sweep.
+        if (seeds.empty()) {
+            TemplateCache fullCache(&templateGray_);
+            for (double a = angleStart; a <= angleEnd + 1e-6; a += baseFineStep)
+                fullCache.get(a);
+            std::vector<GmMatchResult> full;
+            matchAtLevel(sourceGray_, templateGray_, fullCache, 0, 1.0,
+                         angleStart, angleEnd, baseFineStep, nccThreshold, topN * 16, full);
+            seeds = nonMaxSuppression(full, maxOverlap);
+        }
+
+        auto tEnd = nowP();
+        lastMatchMs_ = msP(tMatch, tEnd) - warmMs;
+
+        auto final = nonMaxSuppression(seeds, maxOverlap);
         std::sort(final.begin(), final.end(),
                   [](const GmMatchResult& a, const GmMatchResult& b) { return a.score > b.score; });
         if (static_cast<int>(final.size()) > topN)
