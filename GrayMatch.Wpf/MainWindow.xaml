@@ -5,6 +5,8 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:GrayMatch.Wpf"
         mc:Ignorable="d"
+        WindowState="Maximized"
+        WindowStartupLocation="CenterScreen"
         Title="旋转不变 NCC 匹配器 — WPF 演示" Height="820" Width="1280">
 
     <Window.Resources>
