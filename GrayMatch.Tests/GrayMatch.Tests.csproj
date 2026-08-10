@@ -18,10 +18,6 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\GrayMatch\GrayMatch.csproj" />
-  </ItemGroup>
-
   <!-- Copy the native matcher DLL and its OpenCV runtime into the test output
        folder, so P/Invoke loads the freshly built native library. -->
   <Target Name="CopyNativeDeps" AfterTargets="Build">

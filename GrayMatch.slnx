@@ -1,5 +1,3 @@
 <Solution>
-  <Project Path="GrayMatch.Tests/GrayMatch.Tests.csproj" />
-  <Project Path="GrayMatch/GrayMatch.csproj" />
   <Project Path="GrayMatch.Wpf/GrayMatch.Wpf.csproj" />
 </Solution>
