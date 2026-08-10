@@ -1,19 +1,4 @@
 # ninja log v6
-21	3585	8078537768881326	CMakeFiles/GrayModelNative.dir/gray_model_native.cpp.obj	3082ae213aeb984d
-3590	7938	8078537804561627	GrayModelNative.lib	6c9c09e056c392f2
-3590	7938	8078537804561627	GrayModelNative.dll	6c9c09e056c392f2
-242	3696	8078540440159958	CMakeFiles/GrayModelNative.dir/gray_model_native.cpp.obj	3082ae213aeb984d
-3699	8282	8078540474719631	GrayModelNative.dll	6c9c09e056c392f2
-3699	8282	8078540474719631	GrayModelNative.lib	6c9c09e056c392f2
-9	4212	8078622467061581	CMakeFiles/GrayModelNative.dir/gray_model_native.cpp.obj	3082ae213aeb984d
-4225	8585	8078622509220415	GrayModelNative.dll	6c9c09e056c392f2
-4225	8585	8078622509220415	GrayModelNative.lib	6c9c09e056c392f2
-16	3482	8078625972324912	CMakeFiles/GrayModelNative.dir/gray_model_native.cpp.obj	3082ae213aeb984d
-3488	7470	8078626007046055	GrayModelNative.dll	6c9c09e056c392f2
-3488	7470	8078626007046055	GrayModelNative.lib	6c9c09e056c392f2
-13	3646	8078638138932026	CMakeFiles/GrayModelNative.dir/gray_model_native.cpp.obj	3082ae213aeb984d
-3658	7663	8078638175375700	GrayModelNative.dll	6c9c09e056c392f2
-3658	7663	8078638175375700	GrayModelNative.lib	6c9c09e056c392f2
 9	3726	8080321475333163	CMakeFiles/GrayModelNative.dir/gray_model_native.cpp.obj	3082ae213aeb984d
-3744	7340	8080321512670776	GrayModelNative.dll	6c9c09e056c392f2
 3744	7340	8080321512670776	GrayModelNative.lib	6c9c09e056c392f2
+3744	7340	8080321512670776	GrayModelNative.dll	6c9c09e056c392f2
