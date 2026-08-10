@@ -48,6 +48,10 @@
                     <TextBlock Text="5.执行匹配查看检测结果" FontSize="11" TextWrapping="Wrap"/>
                     <TextBlock Text="6.清除结果可重置，重新选模板" FontSize="11" TextWrapping="Wrap"/>
                     <Separator Margin="0,12,0,6"/>
+
+                    <TextBlock Text="电脑配置" FontWeight="Bold" FontSize="13" Margin="0,2,0,6"/>
+                    <TextBlock Text="{Binding ComputerConfigText}" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,4"/>
+
                     <TextBlock Text="图像信息" FontWeight="Bold" FontSize="13" Margin="0,2,0,6"/>
                     <TextBlock Text="图像分辨率" Margin="0,2,0,0"/>
                     <TextBlock Text="{Binding ImageSizeText}" Margin="0,0,0,6" FontWeight="SemiBold"/>
@@ -79,6 +83,10 @@
                         <ComboBoxItem>5</ComboBoxItem>
                         <ComboBoxItem>6</ComboBoxItem>
                     </ComboBox>
+
+                    <Separator Margin="0,12,0,6"/>
+                    <TextBlock Text="影响速度的可能因素" FontWeight="Bold" FontSize="13" Margin="0,2,0,6"/>
+                    <TextBlock Text="{Binding InfluenceFactorsText}" FontSize="11" TextWrapping="Wrap"/>
 
                 </StackPanel>
             </ScrollViewer>

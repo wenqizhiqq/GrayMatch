@@ -7,6 +7,8 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Runtime.InteropServices;
+using System.Text;
 
 namespace GrayMatch.Wpf;
 
@@ -17,12 +19,16 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
     private bool _isDrawingRoi;
     private Point _roiStart;
+    private int _templateW;
+    private int _templateH;
 
     public MainWindow()
     {
         InitializeComponent();
         DataContext = this;
         WireEvents();
+        LoadComputerConfig();
+        UpdateInfluenceFactors();
         StatusText = "就绪";
     }
 
@@ -72,6 +78,12 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private string _matchMsText = "\u2014";
     public string MatchMsText { get => _matchMsText; set => Set(ref _matchMsText, value); }
 
+    private string _computerConfigText = "\u2014";
+    public string ComputerConfigText { get => _computerConfigText; set => Set(ref _computerConfigText, value); }
+
+    private string _influenceFactorsText = "\u2014";
+    public string InfluenceFactorsText { get => _influenceFactorsText; set => Set(ref _influenceFactorsText, value); }
+
     #endregion
 
     private void WireEvents()
@@ -80,6 +92,14 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         BtnCreateTemplate.Click += (_, _) => StartCreateTemplate();
         BtnMatch.Click += async (_, _) => await RunMatchAsync();
         BtnClear.Click += (_, _) => ClearResults();
+
+        TbAngleStart.TextChanged += (_, _) => UpdateInfluenceFactors();
+        TbAngleEnd.TextChanged += (_, _) => UpdateInfluenceFactors();
+        TbAngleStep.TextChanged += (_, _) => UpdateInfluenceFactors();
+        TbThreshold.TextChanged += (_, _) => UpdateInfluenceFactors();
+        TbOverlap.TextChanged += (_, _) => UpdateInfluenceFactors();
+        TbTopN.TextChanged += (_, _) => UpdateInfluenceFactors();
+        CmbPyramid.SelectionChanged += (_, _) => UpdateInfluenceFactors();
     }
 
     private async Task OpenImageAsync()
@@ -99,8 +119,11 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         ImageSizeText = $"{mat.Width} \u00d7 {mat.Height}";
         TemplateSizeText = "\u2014";
         MatchMsText = "\u2014";
+        _templateW = 0;
+        _templateH = 0;
         Results.Clear();
         ClearRoi();
+        UpdateInfluenceFactors();
         StatusText = $"已加载图像: {dlg.FileName}";
     }
 
@@ -244,6 +267,96 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         _matcher.SetTemplateFromRoi(new OpenCvSharp.Rect(x, y, w, h));
         StatusText = $"模板已创建: {w}x{h}";
         TemplateSizeText = $"{_matcher.Template.Width} \u00d7 {_matcher.Template.Height}";
+        _templateW = _matcher.Template.Width;
+        _templateH = _matcher.Template.Height;
+        UpdateInfluenceFactors();
+    }
+
+    #endregion
+
+    #region Computer config & influence factors
+
+    [StructLayout(LayoutKind.Sequential)]
+    private sealed class MemoryStatusEx
+    {
+        public uint dwLength;
+        public uint dwMemoryLoad;
+        public ulong ullTotalPhys;
+        public ulong ullAvailPhys;
+        public ulong ullTotalPageFile;
+        public ulong ullAvailPageFile;
+        public ulong ullTotalVirtual;
+        public ulong ullAvailVirtual;
+        public ulong ullAvailExtendedVirtual;
+        public MemoryStatusEx() { dwLength = (uint)Marshal.SizeOf<MemoryStatusEx>(); }
+    }
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool GlobalMemoryStatusEx([In, Out] MemoryStatusEx lpBuffer);
+
+    private void LoadComputerConfig()
+    {
+        var sb = new StringBuilder();
+        try
+        {
+            sb.AppendLine("操作系统: " + RuntimeInformation.OSDescription.Trim());
+            sb.AppendLine("系统架构: " + RuntimeInformation.ProcessArchitecture + (Environment.Is64BitProcess ? " (64位进程)" : " (32位进程)"));
+            sb.AppendLine("处理器: " + (Environment.GetEnvironmentVariable("PROCESSOR_IDENTIFIER") ?? "未知"));
+            sb.AppendLine("逻辑核心数: " + Environment.ProcessorCount);
+
+            ulong totalPhys = 0;
+            try
+            {
+                var ms = new MemoryStatusEx();
+                if (GlobalMemoryStatusEx(ms)) totalPhys = ms.ullTotalPhys;
+            }
+            catch { }
+            if (totalPhys > 0)
+                sb.AppendLine("物理内存: " + (totalPhys / 1024.0 / 1024.0 / 1024.0).ToString("F1") + " GB");
+
+            string ocv = "4.8.0";
+            try
+            {
+                var m = typeof(OpenCvSharp.Cv2).GetMethod("GetVersionString", Type.EmptyTypes);
+                if (m != null) ocv = (string?)m.Invoke(null, null) ?? ocv;
+            }
+            catch { }
+            sb.AppendLine("OpenCV: " + ocv + " (OpenCvSharp4 4.8.0)");
+            sb.AppendLine("运行框架: " + RuntimeInformation.FrameworkDescription);
+            sb.AppendLine("并行计算: OpenMP x " + Environment.ProcessorCount + " 线程");
+        }
+        catch (Exception ex)
+        {
+            sb.Clear();
+            sb.AppendLine("配置读取失败: " + ex.Message);
+        }
+        ComputerConfigText = sb.ToString().TrimEnd();
+    }
+
+    private void UpdateInfluenceFactors()
+    {
+        var sb = new StringBuilder();
+        double start = Parse(TbAngleStart.Text, -180);
+        double end = Parse(TbAngleEnd.Text, 180);
+        double step = Parse(TbAngleStep.Text, 1);
+        int pyramid = 4;
+        if (int.TryParse((CmbPyramid.SelectedItem as ComboBoxItem)?.Content?.ToString(), out int p)) pyramid = p;
+
+        int angleCount = (step > 1e-9 && end >= start)
+            ? (int)Math.Floor((end - start) / step) + 1 : 0;
+
+        sb.AppendLine("角度扫描数: " + angleCount);
+        sb.AppendLine("金字塔层级: " + pyramid);
+        sb.AppendLine("图像尺寸: " + (ImageWidth > 1 ? $"{ImageWidth} x {ImageHeight}" : "未加载"));
+        sb.AppendLine("模板尺寸: " + (_templateW > 0 ? $"{_templateW} x {_templateH}" : "未创建"));
+        sb.AppendLine("");
+        sb.AppendLine("影响速度的可能因素:");
+        sb.AppendLine("• 金字塔层级↑ -> 越快 (粗层先筛种子)");
+        sb.AppendLine("• 角度范围/步长↑ -> 越快但精度↓");
+        sb.AppendLine("• 图像/模板越大 -> 计算量越大、越慢");
+        sb.AppendLine("• 核心数↑ -> OpenMP 并行越快");
+
+        InfluenceFactorsText = sb.ToString().TrimEnd();
     }
 
     #endregion
