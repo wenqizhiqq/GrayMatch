@@ -11,6 +11,8 @@
 
     <Window.Resources>
         <local:AngleSignConverter x:Key="AngleNegate"/>
+        <!-- 系统内置布尔转可见转换器，无需新建C#类 -->
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
         <!-- 统一紧凑间距样式，复用减少重复代码 -->
         <Style x:Key="CompactText" TargetType="TextBlock">
             <Setter Property="FontSize" Value="10.5"/>
@@ -91,22 +93,16 @@
                     </ComboBox>
 
                     <Separator Margin="0,8,0,4"/>
-                    <TextBlock Text="影响速度的可能因素" FontWeight="Bold" FontSize="12" Margin="0,1,0,4"/>
-                    <TextBlock Text="{Binding InfluenceFactorsText}" Style="{StaticResource CompactText}"/>
-                    
-                    
-                    <Button x:Name="BtnMatch" Content="执行匹配" Style="{StaticResource CompactButton}"
-                  ToolTip="设置好角度、阈值等参数后，执行旋转NCC模板匹配"/>
-                    <Button x:Name="BtnClear" Content="清除结果" Style="{StaticResource CompactButton}"
-                  ToolTip="清空匹配框、表格结果，保留原图和模板"/>
+
+ 
 
                     <CheckBox x:Name="ChkDefect" Content="检测缺陷（模板比对）" Margin="0,8,0,2" FontSize="11"
                   ToolTip="对每个匹配目标，逆旋转对齐到模板做差值图，检测污渍/异物、划痕、缺料/破损、亮度/对比度异常，红色半透明标注。"/>
 
-                    <!-- 缺陷检测参数：仅在勾选“检测缺陷”后可编辑 -->
+                    <!-- 修改点：IsEnabled 替换为 Visibility 绑定系统转换器，勾选才显示区域 -->
                     <Border BorderBrush="#FFD0D0D0" BorderThickness="1" CornerRadius="3"
                             Padding="6,4" Margin="0,4,0,2" Background="#FFFAFAFA"
-                            IsEnabled="{Binding ElementName=ChkDefect, Path=IsChecked}">
+                            Visibility="{Binding ElementName=ChkDefect, Path=IsChecked, Converter={StaticResource BoolToVis}}">
                         <StackPanel>
                             <TextBlock Text="缺陷检测参数" FontWeight="Bold" FontSize="11.5" Margin="0,0,0,4"/>
 
@@ -151,8 +147,12 @@
                         </StackPanel>
                     </Border>
 
+                    <Button x:Name="BtnMatch" Content="执行匹配" Style="{StaticResource CompactButton}"
+                  ToolTip="设置好角度、阈值等参数后，执行旋转NCC模板匹配"/>
+                    <Button x:Name="BtnClear" Content="清除结果" Style="{StaticResource CompactButton}"
+                  ToolTip="清空匹配框、表格结果，保留原图和模板"/>
                     <Separator Margin="0,8,0,4"/>
- 
+
 
                     <TextBlock Text="电脑配置" FontWeight="Bold" FontSize="12" Margin="0,1,0,4"/>
                     <TextBlock Text="{Binding ComputerConfigText}" Style="{StaticResource CompactText}"/>
@@ -168,7 +168,7 @@
                     <TextBlock Text="缺陷统计" Style="{StaticResource ParamLabel}"/>
                     <TextBlock Text="{Binding DefectSummaryText}" Margin="0,0,0,4" FontWeight="SemiBold" FontSize="10.5" Foreground="Red"/>
 
-                   
+
 
                 </StackPanel>
             </ScrollViewer>
