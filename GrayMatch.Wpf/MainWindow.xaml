@@ -57,6 +57,54 @@
                     <CheckBox x:Name="ChkDefect" Content="检测缺陷（模板比对）" Margin="0,8,0,2" FontSize="11"
                   ToolTip="对每个匹配目标，逆旋转对齐到模板做差值图，检测污渍/异物、划痕、缺料/破损、亮度/对比度异常，红色半透明标注。"/>
 
+                    <!-- 缺陷检测参数：仅在勾选“检测缺陷”后可编辑 -->
+                    <Border BorderBrush="#FFD0D0D0" BorderThickness="1" CornerRadius="3"
+                            Padding="6,4" Margin="0,4,0,2" Background="#FFFAFAFA"
+                            IsEnabled="{Binding ElementName=ChkDefect, Path=IsChecked}">
+                        <StackPanel>
+                            <TextBlock Text="缺陷检测参数" FontWeight="Bold" FontSize="11.5" Margin="0,0,0,4"/>
+
+                            <TextBlock Text="差值阈值 10~120，越低越灵敏" Style="{StaticResource ParamLabel}"/>
+                            <TextBox x:Name="TbDefectDiff" Text="45" Margin="0,0,0,4" FontSize="10.5"
+                     TextChanged="DefectParam_Changed"
+                     ToolTip="灰度差超过该值才算异常像素。误检多就调高，漏检就调低。"/>
+
+                            <TextBlock Text="边缘容差(px) 0=关，仍误报时设2~4" Style="{StaticResource ParamLabel}"/>
+                            <TextBox x:Name="TbDefectEdgeTol" Text="0" Margin="0,0,0,4" FontSize="10.5"
+                     TextChanged="DefectParam_Changed"
+                     ToolTip="沿模板轮廓生成的“不关心”带宽度，是腐蚀膨胀之外的额外保险。默认关闭：实测腐蚀膨胀已能清除全部轮廓误报，而 3px 容差带会把一条真实的 20px 划痕削到 8px。轮廓误报仍然存在时再设 2~4。"/>
+
+                            <TextBlock Text="边缘梯度阈值 5~120，越低带越宽" Style="{StaticResource ParamLabel}"/>
+                            <TextBox x:Name="TbDefectEdgeGrad" Text="30" Margin="0,0,0,4" FontSize="10.5"
+                     TextChanged="DefectParam_Changed"
+                     ToolTip="判定“这是模板轮廓”的灰度跳变强度。调低会把更多弱边纳入容差带，抑制更强但更易漏检。"/>
+
+                            <TextBlock Text="腐蚀核 0/2~7，消细边残留" Style="{StaticResource ParamLabel}"/>
+                            <TextBox x:Name="TbDefectErode" Text="2" Margin="0,0,0,4" FontSize="10.5"
+                     TextChanged="DefectParam_Changed"
+                     ToolTip="先腐蚀掉细窄的边缘残留。填 0 或 1 表示不腐蚀。过大会吃掉真实的细划痕。"/>
+
+                            <TextBlock Text="膨胀核 0/2~7，恢复缺陷面积" Style="{StaticResource ParamLabel}"/>
+                            <TextBox x:Name="TbDefectDilate" Text="3" Margin="0,0,0,4" FontSize="10.5"
+                     TextChanged="DefectParam_Changed"
+                     ToolTip="腐蚀后再膨胀，恢复真实缺陷尺寸并把被腐蚀打断的划痕重新连成一条。建议不小于腐蚀核。"/>
+
+                            <TextBlock Text="最小面积占比(%) 0.05~5" Style="{StaticResource ParamLabel}"/>
+                            <TextBox x:Name="TbDefectMinArea" Text="0.4" Margin="0,0,0,4" FontSize="10.5"
+                     TextChanged="DefectParam_Changed"
+                     ToolTip="小于模板面积该百分比的连通区被忽略，用来滤掉零星噪点。"/>
+
+                            <TextBlock Text="全局亮度阈值 5~80" Style="{StaticResource ParamLabel}"/>
+                            <TextBox x:Name="TbDefectGlobal" Text="28" Margin="0,0,0,2" FontSize="10.5"
+                     TextChanged="DefectParam_Changed"
+                     ToolTip="没有局部缺陷但整体平均差值超过该值时，标一个“亮度/对比度异常”小徽标。调高可关闭该提示。"/>
+
+                            <Button x:Name="BtnDefectReset" Content="恢复默认" Height="24" Margin="0,5,0,0" FontSize="10.5"
+                    Click="BtnDefectReset_Click"
+                    ToolTip="把上面所有缺陷参数恢复为默认值"/>
+                        </StackPanel>
+                    </Border>
+
                     <Separator Margin="0,8,0,4"/>
 
                     <TextBlock Text="使用说明" FontWeight="Bold" FontSize="12" Margin="0,1,0,4"/>

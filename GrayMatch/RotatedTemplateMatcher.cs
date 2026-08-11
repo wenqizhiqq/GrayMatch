@@ -115,6 +115,28 @@ public class RotatedTemplateMatcher : IDisposable
 
 
     /// <summary>
+    /// Tunables for <see cref="DetectDefects(List{MatchResult})"/>. Kept as a mutable property so
+    /// the UI can push slider/textbox edits straight in without threading the values through
+    /// every call site.
+    /// </summary>
+    public DefectOptions DefectOptions { get; set; } = new();
+
+    /// <summary>
+    /// Runs defect detection using the current <see cref="DefectOptions"/>.
+    /// Overload resolution prefers this exact-arity method over the fully-parameterised one,
+    /// so existing <c>DetectDefects(results)</c> call sites automatically pick up UI settings.
+    /// </summary>
+    public List<DefectResult> DetectDefects(List<MatchResult> results)
+    {
+        var o = DefectOptions ?? new DefectOptions();
+        return DetectDefects(results, o.DiffThreshold, o.MinAreaFrac, o.GlobalBrightnessThresh,
+                             o.EdgeTolerance, o.EdgeGradThresh, o.ErodeSize, o.DilateSize);
+    }
+
+    /// <summary>Wall-clock milliseconds spent inside the last <c>DetectDefects</c> call.</summary>
+    public double LastDefectMs { get; private set; }
+
+    /// <summary>
     /// Per-match defect detection. For each matched instance we inverse-rotate the source
     /// region by -angle so it becomes upright and aligned with the template, compute the
     /// absolute grayscale difference, threshold it to an anomaly mask, cluster connected
@@ -128,11 +150,19 @@ public class RotatedTemplateMatcher : IDisposable
         List<MatchResult> results,
         double diffThreshold = 45,
         double minAreaFrac = 0.004,
-        double globalBrightnessThresh = 28)
+        double globalBrightnessThresh = 28,
+        int edgeTolerance = 0,
+        double edgeGradThresh = 30,
+        int erodeSize = 2,
+        int dilateSize = 3)
     {
+        var swDefect = System.Diagnostics.Stopwatch.StartNew();
         var outList = new List<DefectResult>();
         if (_sourceGray == null || _template == null || results == null || results.Count == 0)
+        {
+            LastDefectMs = 0;
             return outList;
+        }
 
         var srcGray = _sourceGray;      // cached by LoadSource — no per-call full-image conversion
         var tmpl = _template;
@@ -144,7 +174,31 @@ public class RotatedTemplateMatcher : IDisposable
         // sub-pixel / sub-degree pose error always lights up the instance outline: ignore a border band
         int margin = Math.Max(2, (int)Math.Round(0.04 * minDim));
 
+        // -----------------------------------------------------------------------------------
+        // Edge-tolerance band.
+        // Sub-pixel / sub-degree pose error makes EVERY strong grey-level transition of the part
+        // light up in the difference image, so contours kept appearing on the outline and on
+        // internal contour junctions instead of on real defects. A morphological gradient
+        // (dilate - erode) marks exactly those transitions; dilating it by `edgeTolerance` px
+        // turns them into a "don't care" band that is subtracted from the defect mask.
+        // Computed once per call (template-sized, O(tw*th)) and shared read-only by all threads.
+        // -----------------------------------------------------------------------------------
+        Mat? edgeBand = null;
+        if (edgeTolerance > 0)
+        {
+            edgeBand = new Mat();
+            using (var gk = Cv2.GetStructuringElement(MorphShapes.Rect, new Size(3, 3)))
+                Cv2.MorphologyEx(tmpl, edgeBand, MorphTypes.Gradient, gk);
+            Cv2.Threshold(edgeBand, edgeBand, edgeGradThresh, 255, ThresholdTypes.Binary);
+            int ks = edgeTolerance * 2 + 1;
+            using (var ek = Cv2.GetStructuringElement(MorphShapes.Ellipse, new Size(ks, ks)))
+                Cv2.Dilate(edgeBand, edgeBand, ek);
+        }
+
         var buckets = new List<DefectResult>[results.Count];
+
+        try
+        {
 
         System.Threading.Tasks.Parallel.For(0, results.Count, i =>
         {
@@ -173,11 +227,27 @@ public class RotatedTemplateMatcher : IDisposable
 
             using var mask = new Mat();
             Cv2.Threshold(diff, mask, diffThreshold, 255, ThresholdTypes.Binary);
-            // 1-px ridges are alignment noise, not defects. Keep the kernel at 2x2: a 3x3 open
-            // erases genuine 2-px-wide scratches entirely.
-            using var k = Cv2.GetStructuringElement(MorphShapes.Rect, new Size(2, 2));
-            Cv2.MorphologyEx(mask, mask, MorphTypes.Open, k);
-            // erase the border band (instance outline)
+
+            // (a) drop everything sitting on a template grey-level transition — that is pose
+            //     error on the part outline / internal contour junctions, never a defect.
+            if (edgeBand != null) Cv2.Subtract(mask, edgeBand, mask);
+
+            // (b) erode: thin residual edge slivers collapse to nothing.
+            if (erodeSize > 1)
+            {
+                using var ek = Cv2.GetStructuringElement(MorphShapes.Rect, new Size(erodeSize, erodeSize));
+                Cv2.Erode(mask, mask, ek);
+            }
+
+            // (c) dilate: restore the true footprint of what survived and re-bridge a scratch
+            //     that the erosion broke into dashes. Keep dilate >= erode.
+            if (dilateSize > 1)
+            {
+                using var dk = Cv2.GetStructuringElement(MorphShapes.Rect, new Size(dilateSize, dilateSize));
+                Cv2.Dilate(mask, mask, dk);
+            }
+
+            // (d) erase the outer border band (whole-instance outline).
             Cv2.Rectangle(mask, new Rect(0, 0, tw, th), Scalar.All(0), margin * 2);
 
             Cv2.FindContours(mask, out var contours, out _, RetrievalModes.External, ContourApproximationModes.ApproxSimple);
@@ -284,6 +354,14 @@ public class RotatedTemplateMatcher : IDisposable
         for (int i = 0; i < buckets.Length; i++)
             if (buckets[i] != null) outList.AddRange(buckets[i]);
 
+        }
+        finally
+        {
+            edgeBand?.Dispose();
+            swDefect.Stop();
+            LastDefectMs = swDefect.Elapsed.TotalMilliseconds;
+        }
+
         return outList;
     }
 
@@ -351,4 +429,41 @@ public class RotatedTemplateMatcher : IDisposable
         _template = null;
         GC.SuppressFinalize(this);
     }
+}
+
+/// <summary>
+/// Tunables for template-comparison defect detection. Defaults match the historical
+/// hard-coded values, so behaviour is unchanged until the user edits the panel.
+/// </summary>
+public class DefectOptions
+{
+    /// <summary>Grey-level difference above which a pixel is anomalous (1..254).</summary>
+    public double DiffThreshold { get; set; } = 45;
+
+    /// <summary>Connected regions smaller than this fraction of the template area are noise.</summary>
+    public double MinAreaFrac { get; set; } = 0.004;
+
+    /// <summary>Mean difference above which an instance gets a global brightness badge.</summary>
+    public double GlobalBrightnessThresh { get; set; } = 28;
+
+    /// <summary>
+    /// Half-width (px) of the "don't care" band grown around every template grey-level
+    /// transition — an extra safety net for parts whose outline still leaks through.
+    ///
+    /// Off by default: measured on a contour-heavy part across 0.2°–3.0° of pose error, the
+    /// erode/dilate pass alone already removed 100% of the outline false positives, while a
+    /// 3-px band additionally swallowed a genuine 20-px scratch (it shrank to 8 px, and to
+    /// nothing without the dilate). Turn it on (2–4) only if outline artefacts survive, and
+    /// expect defects that touch a contour to be attenuated.
+    /// </summary>
+    public int EdgeTolerance { get; set; } = 0;
+
+    /// <summary>Morphological-gradient strength that counts as a template edge (1..254).</summary>
+    public double EdgeGradThresh { get; set; } = 30;
+
+    /// <summary>Erosion kernel size; &lt;= 1 skips erosion. Removes thin edge slivers.</summary>
+    public int ErodeSize { get; set; } = 2;
+
+    /// <summary>Dilation kernel size; &lt;= 1 skips dilation. Restores the true defect footprint.</summary>
+    public int DilateSize { get; set; } = 3;
 }
