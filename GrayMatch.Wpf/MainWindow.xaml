@@ -44,11 +44,57 @@
             BorderBrush="Gray" BorderThickness="0,0,1,0" Background="#FFF0F0F0">
             <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="4">
                 <StackPanel Margin="0,2">
+                    <TextBlock Text="使用说明" FontWeight="Bold" FontSize="12" Margin="0,1,0,4"/>
+                    <TextBlock Text="1.打开图像加载原图" Style="{StaticResource CompactText}"/>
+                    <TextBlock Text="2.鼠标拖拽框选目标区域" Style="{StaticResource CompactText}"/>
+                    <TextBlock Text="3.点击创建模板生成匹配模板" Style="{StaticResource CompactText}"/>
+                    <TextBlock Text="4.调整角度、阈值等参数" Style="{StaticResource CompactText}"/>
+                    <TextBlock Text="5.执行匹配查看检测结果" Style="{StaticResource CompactText}"/>
+                    <TextBlock Text="6.清除结果可重置，重新选模板" Style="{StaticResource CompactText}"/>
+
+                    <Separator Margin="0,8,0,4"/>
                     <TextBlock Text="操作" FontWeight="Bold" FontSize="12" Margin="0,1,0,4"/>
                     <Button x:Name="BtnOpen" Content="打开图像" Style="{StaticResource CompactButton}"
                   ToolTip="打开待检测原图，支持bmp/jpg/png格式"/>
                     <Button x:Name="BtnCreateTemplate" Content="创建模板" Style="{StaticResource CompactButton}"
                   ToolTip="先在图片上鼠标拖拽框选ROI区域，点击此按钮生成匹配模板"/>
+
+                    <Separator Margin="0,8,0,4"/>
+                    <TextBlock Text="匹配参数" FontWeight="Bold" FontSize="12" Margin="0,1,0,4"/>
+
+                    <TextBlock Text="起始角度(度) -180~180" Style="{StaticResource ParamLabel}"/>
+                    <TextBox x:Name="TbAngleStart" Text="-180" Margin="0,0,0,4" FontSize="10.5"/>
+
+                    <TextBlock Text="终止角度(度)" Style="{StaticResource ParamLabel}"/>
+                    <TextBox x:Name="TbAngleEnd" Text="180" Margin="0,0,0,4" FontSize="10.5"/>
+
+                    <TextBlock Text="角度步长(度) 越大越快精度越低" Style="{StaticResource ParamLabel}"/>
+                    <TextBox x:Name="TbAngleStep" Text="1" Margin="0,0,0,4" FontSize="10.5"/>
+
+                    <TextBlock Text="NCC相似度阈值 0~1，越高越严格" Style="{StaticResource ParamLabel}"/>
+                    <TextBox x:Name="TbThreshold" Text="0.5" Margin="0,0,0,4" FontSize="10.5"/>
+
+                    <TextBlock Text="最大允许重叠 过滤重复匹配" Style="{StaticResource ParamLabel}"/>
+                    <TextBox x:Name="TbOverlap" Text="0.25" Margin="0,0,0,4" FontSize="10.5"/>
+
+                    <TextBlock Text="最多输出匹配结果数量" Style="{StaticResource ParamLabel}"/>
+                    <TextBox x:Name="TbTopN" Text="64" Margin="0,0,0,4" FontSize="10.5"/>
+
+                    <TextBlock Text="金字塔层级 层级越高速度越快" Style="{StaticResource ParamLabel}"/>
+                    <ComboBox x:Name="CmbPyramid" SelectedIndex="3" IsReadOnly="True" Margin="0,0,0,4" FontSize="10.5">
+                        <ComboBoxItem>1</ComboBoxItem>
+                        <ComboBoxItem>2</ComboBoxItem>
+                        <ComboBoxItem>3</ComboBoxItem>
+                        <ComboBoxItem>4</ComboBoxItem>
+                        <ComboBoxItem>5</ComboBoxItem>
+                        <ComboBoxItem>6</ComboBoxItem>
+                    </ComboBox>
+
+                    <Separator Margin="0,8,0,4"/>
+                    <TextBlock Text="影响速度的可能因素" FontWeight="Bold" FontSize="12" Margin="0,1,0,4"/>
+                    <TextBlock Text="{Binding InfluenceFactorsText}" Style="{StaticResource CompactText}"/>
+                    
+                    
                     <Button x:Name="BtnMatch" Content="执行匹配" Style="{StaticResource CompactButton}"
                   ToolTip="设置好角度、阈值等参数后，执行旋转NCC模板匹配"/>
                     <Button x:Name="BtnClear" Content="清除结果" Style="{StaticResource CompactButton}"
@@ -106,16 +152,7 @@
                     </Border>
 
                     <Separator Margin="0,8,0,4"/>
-
-                    <TextBlock Text="使用说明" FontWeight="Bold" FontSize="12" Margin="0,1,0,4"/>
-                    <TextBlock Text="1.打开图像加载原图" Style="{StaticResource CompactText}"/>
-                    <TextBlock Text="2.鼠标拖拽框选目标区域" Style="{StaticResource CompactText}"/>
-                    <TextBlock Text="3.点击创建模板生成匹配模板" Style="{StaticResource CompactText}"/>
-                    <TextBlock Text="4.调整角度、阈值等参数" Style="{StaticResource CompactText}"/>
-                    <TextBlock Text="5.执行匹配查看检测结果" Style="{StaticResource CompactText}"/>
-                    <TextBlock Text="6.清除结果可重置，重新选模板" Style="{StaticResource CompactText}"/>
-
-                    <Separator Margin="0,8,0,4"/>
+ 
 
                     <TextBlock Text="电脑配置" FontWeight="Bold" FontSize="12" Margin="0,1,0,4"/>
                     <TextBlock Text="{Binding ComputerConfigText}" Style="{StaticResource CompactText}"/>
@@ -131,40 +168,7 @@
                     <TextBlock Text="缺陷统计" Style="{StaticResource ParamLabel}"/>
                     <TextBlock Text="{Binding DefectSummaryText}" Margin="0,0,0,4" FontWeight="SemiBold" FontSize="10.5" Foreground="Red"/>
 
-                    <Separator Margin="0,8,0,4"/>
-                    <TextBlock Text="匹配参数" FontWeight="Bold" FontSize="12" Margin="0,1,0,4"/>
-
-                    <TextBlock Text="起始角度(度) -180~180" Style="{StaticResource ParamLabel}"/>
-                    <TextBox x:Name="TbAngleStart" Text="-180" Margin="0,0,0,4" FontSize="10.5"/>
-
-                    <TextBlock Text="终止角度(度)" Style="{StaticResource ParamLabel}"/>
-                    <TextBox x:Name="TbAngleEnd" Text="180" Margin="0,0,0,4" FontSize="10.5"/>
-
-                    <TextBlock Text="角度步长(度) 越大越快精度越低" Style="{StaticResource ParamLabel}"/>
-                    <TextBox x:Name="TbAngleStep" Text="1" Margin="0,0,0,4" FontSize="10.5"/>
-
-                    <TextBlock Text="NCC相似度阈值 0~1，越高越严格" Style="{StaticResource ParamLabel}"/>
-                    <TextBox x:Name="TbThreshold" Text="0.5" Margin="0,0,0,4" FontSize="10.5"/>
-
-                    <TextBlock Text="最大允许重叠 过滤重复匹配" Style="{StaticResource ParamLabel}"/>
-                    <TextBox x:Name="TbOverlap" Text="0.25" Margin="0,0,0,4" FontSize="10.5"/>
-
-                    <TextBlock Text="最多输出匹配结果数量" Style="{StaticResource ParamLabel}"/>
-                    <TextBox x:Name="TbTopN" Text="64" Margin="0,0,0,4" FontSize="10.5"/>
-
-                    <TextBlock Text="金字塔层级 层级越高速度越快" Style="{StaticResource ParamLabel}"/>
-                    <ComboBox x:Name="CmbPyramid" SelectedIndex="3" IsReadOnly="True" Margin="0,0,0,4" FontSize="10.5">
-                        <ComboBoxItem>1</ComboBoxItem>
-                        <ComboBoxItem>2</ComboBoxItem>
-                        <ComboBoxItem>3</ComboBoxItem>
-                        <ComboBoxItem>4</ComboBoxItem>
-                        <ComboBoxItem>5</ComboBoxItem>
-                        <ComboBoxItem>6</ComboBoxItem>
-                    </ComboBox>
-
-                    <Separator Margin="0,8,0,4"/>
-                    <TextBlock Text="影响速度的可能因素" FontWeight="Bold" FontSize="12" Margin="0,1,0,4"/>
-                    <TextBlock Text="{Binding InfluenceFactorsText}" Style="{StaticResource CompactText}"/>
+                   
 
                 </StackPanel>
             </ScrollViewer>
