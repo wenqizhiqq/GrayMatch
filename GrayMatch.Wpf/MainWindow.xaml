@@ -174,16 +174,29 @@
             </ScrollViewer>
         </Border>
 
-        <!-- 图像显示画布 -->
+        <!-- 图像显示画布：滚轮缩放 / 中键拖动平移 / 双击复位（替代原 Viewbox 自适应） -->
         <Border Grid.Column="1" Grid.Row="0" Background="Black">
-            <Viewbox Stretch="Uniform">
-                <Grid x:Name="ImageGrid"
-              Width="{Binding ImageWidth, FallbackValue=1}"
-              Height="{Binding ImageHeight, FallbackValue=1}"
-              Cursor="Cross"
-              MouseLeftButtonDown="ImageGrid_MouseLeftButtonDown"
-              MouseMove="ImageGrid_MouseMove"
-              MouseLeftButtonUp="ImageGrid_MouseLeftButtonUp">
+            <Grid>
+                <ScrollViewer x:Name="ImageViewport"
+                              Background="Black"
+                              HorizontalScrollBarVisibility="Hidden"
+                              VerticalScrollBarVisibility="Hidden"
+                              HorizontalContentAlignment="Center"
+                              VerticalContentAlignment="Center"
+                              MouseWheel="ImageArea_MouseWheel"
+                              MouseDown="ImageArea_MouseDown"
+                              MouseMove="ImageArea_MouseMove"
+                              MouseUp="ImageArea_MouseUp"
+                              Loaded="ImageViewer_Loaded">
+                    <Grid x:Name="ImageGrid"
+                          Cursor="Cross"
+                          MouseLeftButtonDown="ImageGrid_MouseLeftButtonDown"
+                          MouseMove="ImageGrid_MouseMove"
+                          MouseLeftButtonUp="ImageGrid_MouseLeftButtonUp"
+                          SizeChanged="ImageGrid_SizeChanged">
+                        <Grid.LayoutTransform>
+                            <ScaleTransform x:Name="ImageScale" ScaleX="1" ScaleY="1"/>
+                        </Grid.LayoutTransform>
                     <Image x:Name="SourceImage" Source="{Binding SourceBitmap}" Stretch="None"/>
                     <Canvas IsHitTestVisible="False">
                         <!-- ROI选择框 -->
@@ -262,8 +275,13 @@
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
                     </Canvas>
-                </Grid>
-            </Viewbox>
+                    </Grid>
+                </ScrollViewer>
+                <TextBlock Text="滚轮缩放 · 中键拖动平移 · 双击复位"
+                           Foreground="White" Opacity="0.55" FontSize="12"
+                           HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                           Margin="10" IsHitTestVisible="False"/>
+            </Grid>
         </Border>
 
         <!-- 匹配结果表格 -->
