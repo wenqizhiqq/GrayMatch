@@ -77,7 +77,7 @@
                     <TextBox x:Name="TbThreshold" Text="0.5" Margin="0,0,0,4" FontSize="10.5"/>
 
                     <TextBlock Text="最大允许重叠 过滤重复匹配" Style="{StaticResource ParamLabel}"/>
-                    <TextBox x:Name="TbOverlap" Text="0.25" Margin="0,0,0,4" FontSize="10.5"/>
+                    <TextBox x:Name="TbOverlap" Text="0.1" Margin="0,0,0,4" FontSize="10.5"/>
 
                     <TextBlock Text="最多输出匹配结果数量" Style="{StaticResource ParamLabel}"/>
                     <TextBox x:Name="TbTopN" Text="64" Margin="0,0,0,4" FontSize="10.5"/>
