@@ -17,6 +17,7 @@
   <ItemGroup>
     <Compile Include="..\GrayMatch\MatchResult.cs" Link="MatchResult.cs" />
     <Compile Include="..\GrayMatch\RotatedTemplateMatcher.cs" Link="RotatedTemplateMatcher.cs" />
+      <Compile Include="..\GrayMatch\DefectResult.cs" Link="DefectResult.cs" />
   </ItemGroup>
 
   <Target Name="CopyNativeDeps" AfterTargets="Build">

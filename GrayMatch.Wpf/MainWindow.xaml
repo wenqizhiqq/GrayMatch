@@ -54,6 +54,9 @@
                     <Button x:Name="BtnClear" Content="清除结果" Style="{StaticResource CompactButton}"
                   ToolTip="清空匹配框、表格结果，保留原图和模板"/>
 
+                    <CheckBox x:Name="ChkDefect" Content="检测缺陷（模板比对）" Margin="0,8,0,2" FontSize="11"
+                  ToolTip="对每个匹配目标，逆旋转对齐到模板做差值图，检测污渍/异物、划痕、缺料/破损、亮度/对比度异常，红色半透明标注。"/>
+
                     <Separator Margin="0,8,0,4"/>
 
                     <TextBlock Text="使用说明" FontWeight="Bold" FontSize="12" Margin="0,1,0,4"/>
@@ -76,6 +79,9 @@
                     <TextBlock Text="{Binding TemplateSizeText}" Margin="0,0,0,4" FontWeight="SemiBold" FontSize="10.5"/>
                     <TextBlock Text="匹配耗时" Style="{StaticResource ParamLabel}"/>
                     <TextBlock Text="{Binding MatchMsText}" Margin="0,0,0,4" FontWeight="SemiBold" FontSize="10.5"/>
+
+                    <TextBlock Text="缺陷统计" Style="{StaticResource ParamLabel}"/>
+                    <TextBlock Text="{Binding DefectSummaryText}" Margin="0,0,0,4" FontWeight="SemiBold" FontSize="10.5" Foreground="Red"/>
 
                     <Separator Margin="0,8,0,4"/>
                     <TextBlock Text="匹配参数" FontWeight="Bold" FontSize="12" Margin="0,1,0,4"/>
@@ -167,6 +173,38 @@
                                         <TextBlock Canvas.Left="0" Canvas.Top="-20"
                                Foreground="Yellow" FontSize="16" FontWeight="Bold"
                                Text="{Binding Angle, StringFormat='角度:{0:F0}°'}"/>
+                                    </Canvas>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <!-- 缺陷检测叠加层（红色半透明 + 红色文字） -->
+                        <ItemsControl ItemsSource="{Binding Defects}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <Canvas/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemContainerStyle>
+                                <Style TargetType="ContentPresenter">
+                                    <Setter Property="Canvas.Left" Value="{Binding LeftTopX}"/>
+                                    <Setter Property="Canvas.Top" Value="{Binding LeftTopY}"/>
+                                </Style>
+                            </ItemsControl.ItemContainerStyle>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Canvas>
+                                        <Rectangle Canvas.Left="{Binding BoxLeft}" Canvas.Top="{Binding BoxTop}"
+                                       Width="{Binding W}" Height="{Binding H}"
+                                       Fill="Red" Opacity="0.35" Stroke="Red" StrokeThickness="1.5"
+                                       RenderTransformOrigin="0.5,0.5">
+                                            <Rectangle.RenderTransform>
+                                                <RotateTransform Angle="{Binding RectAngle}"/>
+                                            </Rectangle.RenderTransform>
+                                        </Rectangle>
+                                        <TextBlock Canvas.Left="{Binding TextLeft}" Canvas.Top="{Binding TextTop}"
+                                       Foreground="Red" FontSize="12" FontWeight="Bold"
+                                       Text="{Binding Type}"/>
                                     </Canvas>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>

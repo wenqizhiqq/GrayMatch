@@ -21,6 +21,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private Point _roiStart;
     private int _templateW;
     private int _templateH;
+    private bool _defectEnabled;
 
     public MainWindow()
     {
@@ -53,6 +54,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     public BitmapSource? SourceBitmap { get => _sourceBitmap; set => Set(ref _sourceBitmap, value); }
 
     public ObservableCollection<MatchResult> Results { get; } = new();
+    public ObservableCollection<DefectResult> Defects { get; } = new();
 
     private double _roiLeft;
     public double RoiLeft { get => _roiLeft; set => Set(ref _roiLeft, value); }
@@ -78,6 +80,9 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private string _matchMsText = "\u2014";
     public string MatchMsText { get => _matchMsText; set => Set(ref _matchMsText, value); }
 
+    private string _defectSummaryText = "-";
+    public string DefectSummaryText { get => _defectSummaryText; set => Set(ref _defectSummaryText, value); }
+
     private string _computerConfigText = "\u2014";
     public string ComputerConfigText { get => _computerConfigText; set => Set(ref _computerConfigText, value); }
 
@@ -100,6 +105,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         TbOverlap.TextChanged += (_, _) => UpdateInfluenceFactors();
         TbTopN.TextChanged += (_, _) => UpdateInfluenceFactors();
         CmbPyramid.SelectionChanged += (_, _) => UpdateInfluenceFactors();
+        ChkDefect.Checked += ChkDefect_Changed;
+        ChkDefect.Unchecked += ChkDefect_Changed;
     }
 
     private async Task OpenImageAsync()
@@ -122,6 +129,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         _templateW = 0;
         _templateH = 0;
         Results.Clear();
+        Defects.Clear();
+        DefectSummaryText = "-";
         ClearRoi();
         UpdateInfluenceFactors();
         StatusText = $"已加载图像: {dlg.FileName}";
@@ -185,7 +194,20 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         // and WPF box drawing, which the native layer already separates out).
         Results.Clear();
         foreach (var r in results) Results.Add(r);
-        StatusText = $"匹配完成: {results.Count} 个结果, 匹配耗时 {_matcher.LastMatchMs:F1} ms (阈={threshold}, 重叠={overlap}, TopN={topN})";
+
+        Defects.Clear();
+        if (_defectEnabled)
+        {
+            var defects = await Task.Run(() => _matcher.DetectDefects(results), _matchCts.Token);
+            foreach (var d in defects) Defects.Add(d);
+            DefectSummaryText = BuildDefectSummary(defects);
+            StatusText = $"匹配完成: {results.Count} 个结果, 缺陷 {defects.Count} 处, 匹配耗时 {_matcher.LastMatchMs:F1} ms";
+        }
+        else
+        {
+            DefectSummaryText = "-";
+            StatusText = $"匹配完成: {results.Count} 个结果, 匹配耗时 {_matcher.LastMatchMs:F1} ms (阈={threshold}, 重叠={overlap}, TopN={topN})";
+        }
         MatchMsText = $"{_matcher.LastMatchMs:F1} ms";
         BtnMatch.IsEnabled = true;
     }
@@ -194,6 +216,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     {
         _matchCts?.Cancel();
         Results.Clear();
+        Defects.Clear();
+        DefectSummaryText = "-";
         ClearRoi();
         StatusText = "结果已清除";
     }
@@ -201,6 +225,27 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private void ClearRoi()
     {
         RoiLeft = 0; RoiTop = 0; RoiWidth = 0; RoiHeight = 0;
+    }
+
+    private void ChkDefect_Changed(object sender, RoutedEventArgs e)
+    {
+        _defectEnabled = ChkDefect.IsChecked == true;
+        DefectSummaryText = "-";
+        StatusText = _defectEnabled ? "缺陷检测已启用（模板比对）" : "缺陷检测已关闭";
+    }
+
+    private static string BuildDefectSummary(System.Collections.Generic.List<DefectResult> defects)
+    {
+        if (defects == null || defects.Count == 0) return "未发现缺陷";
+        var counts = new System.Collections.Generic.Dictionary<string, int>();
+        foreach (var d in defects)
+        {
+            counts.TryGetValue(d.Type, out int n);
+            counts[d.Type] = n + 1;
+        }
+        var parts = new System.Collections.Generic.List<string>();
+        foreach (var kv in counts) parts.Add(kv.Key + ": " + kv.Value);
+        return "缺陷 " + defects.Count + " 处 (" + string.Join(", ", parts) + ")";
     }
 
     private static double Parse(string text, double fallback)
