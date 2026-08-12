@@ -37,7 +37,6 @@
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
             <RowDefinition Height="*"/>
-            <RowDefinition Height="230"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
@@ -47,19 +46,19 @@
             <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="4">
                 <StackPanel Margin="0,2">
                     <TextBlock Text="使用说明" FontWeight="Bold" FontSize="12" Margin="0,1,0,4"/>
-                    <TextBlock Text="1.打开图像加载原图" Style="{StaticResource CompactText}"/>
-                    <TextBlock Text="2.鼠标拖拽框选目标区域" Style="{StaticResource CompactText}"/>
-                    <TextBlock Text="3.点击创建模板生成匹配模板" Style="{StaticResource CompactText}"/>
-                    <TextBlock Text="4.调整角度、阈值等参数" Style="{StaticResource CompactText}"/>
-                    <TextBlock Text="5.执行匹配查看检测结果" Style="{StaticResource CompactText}"/>
-                    <TextBlock Text="6.清除结果可重置，重新选模板" Style="{StaticResource CompactText}"/>
+                    <TextBlock Text="1. 点「打开图片」选一张要检测的照片" Style="{StaticResource CompactText}"/>
+                    <TextBlock Text="2. 点「创建模板」，进入画框模式" Style="{StaticResource CompactText}"/>
+                    <TextBlock Text="3. 在照片上按住鼠标拖一个框，框住你想找的目标（松手即存为模板）" Style="{StaticResource CompactText}"/>
+                    <TextBlock Text="4. 根据需要调整下面的角度范围、相似度等参数" Style="{StaticResource CompactText}"/>
+                    <TextBlock Text="5. 点「开始查找」，程序会在图上找出所有相同目标并画绿框" Style="{StaticResource CompactText}"/>
+                    <TextBlock Text="6. 点「清除结果」可清掉绿框重新开始（原图和模板还在）" Style="{StaticResource CompactText}"/>
 
                     <Separator Margin="0,8,0,4"/>
                     <TextBlock Text="操作" FontWeight="Bold" FontSize="12" Margin="0,1,0,4"/>
-                    <Button x:Name="BtnOpen" Content="打开图像" Style="{StaticResource CompactButton}"
-                  ToolTip="打开待检测原图，支持bmp/jpg/png格式"/>
+                    <Button x:Name="BtnOpen" Content="打开图片" Style="{StaticResource CompactButton}"
+                  ToolTip="点这里选一张要检测的图片（bmp / jpg / png 都支持）"/>
                     <Button x:Name="BtnCreateTemplate" Content="创建模板" Style="{StaticResource CompactButton}"
-                  ToolTip="先在图片上鼠标拖拽框选ROI区域，点击此按钮生成匹配模板"/>
+                  ToolTip="点这个按钮进入画框模式，然后在图片上拖一个框选中要找的目标（松手即存为模板）"/>
 
                     <Separator Margin="0,8,0,4"/>
                     <TextBlock Text="匹配参数" FontWeight="Bold" FontSize="12" Margin="0,1,0,4"/>
@@ -96,8 +95,8 @@
 
  
 
-                    <CheckBox x:Name="ChkDefect" Content="检测缺陷（模板比对）" Margin="0,8,0,2" FontSize="11"
-                  ToolTip="对每个匹配目标，逆旋转对齐到模板做差值图，检测污渍/异物、划痕、缺料/破损、亮度/对比度异常，红色半透明标注。"/>
+                    <CheckBox x:Name="ChkDefect" Content="顺便检查缺陷（污渍/划痕/缺料）" Margin="0,8,0,2" FontSize="11"
+                  ToolTip="勾选后，除了找目标，还会在每个目标上检查有没有污渍、划痕、缺料等问题，并用红框标出"/>
 
                     <!-- 修改点：IsEnabled 替换为 Visibility 绑定系统转换器，勾选才显示区域 -->
                     <Border BorderBrush="#FFD0D0D0" BorderThickness="1" CornerRadius="3"
@@ -141,16 +140,16 @@
                      TextChanged="DefectParam_Changed"
                      ToolTip="没有局部缺陷但整体平均差值超过该值时，标一个“亮度/对比度异常”小徽标。调高可关闭该提示。"/>
 
-                            <Button x:Name="BtnDefectReset" Content="恢复默认" Height="24" Margin="0,5,0,0" FontSize="10.5"
+                            <Button x:Name="BtnDefectReset" Content="恢复默认参数" Height="24" Margin="0,5,0,0" FontSize="10.5"
                     Click="BtnDefectReset_Click"
-                    ToolTip="把上面所有缺陷参数恢复为默认值"/>
+                    ToolTip="把上面的缺陷参数恢复成默认值"/>
                         </StackPanel>
                     </Border>
 
-                    <Button x:Name="BtnMatch" Content="执行匹配" Style="{StaticResource CompactButton}"
-                  ToolTip="设置好角度、阈值等参数后，执行旋转NCC模板匹配"/>
+                    <Button x:Name="BtnMatch" Content="开始查找" Style="{StaticResource CompactButton}"
+                  ToolTip="设置好上面的参数后，点这里在整张图片里找出所有相同的目标，并用绿框标出"/>
                     <Button x:Name="BtnClear" Content="清除结果" Style="{StaticResource CompactButton}"
-                  ToolTip="清空匹配框、表格结果，保留原图和模板"/>
+                  ToolTip="去掉图上所有的绿框和结果，原图和模板都会保留"/>
                     <Separator Margin="0,8,0,4"/>
 
 
@@ -284,30 +283,8 @@
             </Grid>
         </Border>
 
-        <!-- 匹配结果表格 -->
-        <DataGrid Grid.Column="1" Grid.Row="1"
-              ItemsSource="{Binding Results}"
-              AutoGenerateColumns="False"
-              IsReadOnly="True"
-              SelectionMode="Single"
-              CanUserAddRows="False"
-              CanUserDeleteRows="False" FontSize="10.5">
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="序号" Binding="{Binding Index}" Width="40"/>
-                <DataGridTextColumn Header="NCC分数" Binding="{Binding Score, StringFormat=F4}" Width="80"/>
-                <DataGridTextColumn Header="中心X" Binding="{Binding CenterX, StringFormat=F2}" Width="80"/>
-                <DataGridTextColumn Header="中心Y" Binding="{Binding CenterY, StringFormat=F2}" Width="80"/>
-                <DataGridTextColumn Header="角度°" Binding="{Binding Angle, StringFormat=F1}" Width="60"/>
-                <DataGridTextColumn Header="模板宽" Binding="{Binding TemplateWidth}" Width="70"/>
-                <DataGridTextColumn Header="模板高" Binding="{Binding TemplateHeight}" Width="70"/>
-                <DataGridTextColumn Header="左上X" Binding="{Binding LeftTopX}" Width="70"/>
-                <DataGridTextColumn Header="左上Y" Binding="{Binding LeftTopY}" Width="70"/>
-                <DataGridTextColumn Header="金字塔层" Binding="{Binding Level}" Width="70"/>
-            </DataGrid.Columns>
-        </DataGrid>
-
         <!-- 底部状态栏 -->
-        <StatusBar Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="2">
+        <StatusBar Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="1">
             <TextBlock Text="{Binding StatusText}" Padding="4,2" FontSize="10.5"/>
         </StatusBar>
     </Grid>

@@ -30,7 +30,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         WireEvents();
         LoadComputerConfig();
         UpdateInfluenceFactors();
-        StatusText = "就绪";
+        StatusText = "已经准备好了，可以开始";
     }
 
     #region Bindable properties
@@ -133,7 +133,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         DefectSummaryText = "-";
         ClearRoi();
         UpdateInfluenceFactors();
-        StatusText = $"已加载图像: {dlg.FileName}";
+        StatusText = $"图片已读入：{dlg.FileName}";
     }
 
     private void StartCreateTemplate()
@@ -144,7 +144,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             return;
         }
         _isDrawingRoi = true;
-        StatusText = "在图像上拖拽绘制模板区域";
+        StatusText = "在图片上按住鼠标拖一个框，框住要找的目标（松手即成为模板）";
     }
 
     private async Task RunMatchAsync()
@@ -169,7 +169,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         double overlap = Parse(TbOverlap.Text, 0.25);
         int topN = (int)Parse(TbTopN.Text, 64);
 
-        StatusText = "正在匹配...";
+        StatusText = "正在查找，请稍候...";
 
         List<MatchResult> results;
         try
@@ -178,14 +178,14 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         }
         catch (OperationCanceledException)
         {
-            StatusText = "匹配已取消";
+            StatusText = "已取消查找";
             BtnMatch.IsEnabled = true;
             return;
         }
         catch (Exception ex)
         {
             MessageBox.Show($"匹配失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-            StatusText = "匹配失败";
+            StatusText = "查找失败了";
             BtnMatch.IsEnabled = true;
             return;
         }
@@ -201,12 +201,12 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             var defects = await Task.Run(() => _matcher.DetectDefects(results), _matchCts.Token);
             foreach (var d in defects) Defects.Add(d);
             DefectSummaryText = BuildDefectSummary(defects);
-            StatusText = $"匹配完成: {results.Count} 个结果, 缺陷 {defects.Count} 处, 匹配耗时 {_matcher.LastMatchMs:F1} ms";
+            StatusText = $"查找完成：共找到 {results.Count} 个目标，其中 {defects.Count} 处有缺陷，用时 {_matcher.LastMatchMs:F1} 毫秒";
         }
         else
         {
             DefectSummaryText = "-";
-            StatusText = $"匹配完成: {results.Count} 个结果, 匹配耗时 {_matcher.LastMatchMs:F1} ms (阈={threshold}, 重叠={overlap}, TopN={topN})";
+            StatusText = $"查找完成：共找到 {results.Count} 个目标，用时 {_matcher.LastMatchMs:F1} 毫秒";
         }
         MatchMsText = $"{_matcher.LastMatchMs:F1} ms";
         BtnMatch.IsEnabled = true;
@@ -219,7 +219,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         Defects.Clear();
         DefectSummaryText = "-";
         ClearRoi();
-        StatusText = "结果已清除";
+        StatusText = "结果已清空，绿框已去掉";
     }
 
     private void ClearRoi()
@@ -231,7 +231,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     {
         _defectEnabled = ChkDefect.IsChecked == true;
         DefectSummaryText = "-";
-        StatusText = _defectEnabled ? "缺陷检测已启用（模板比对）" : "缺陷检测已关闭";
+        StatusText = _defectEnabled ? "已开启缺陷检查" : "已关闭缺陷检查";
     }
 
     private static string BuildDefectSummary(System.Collections.Generic.List<DefectResult> defects)
@@ -305,12 +305,12 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         if (w < 8 || h < 8)
         {
             ClearRoi();
-            StatusText = "模板区域太小";
+            StatusText = "框选的模板太小了，请框大一点";
             return;
         }
 
         _matcher.SetTemplateFromRoi(new OpenCvSharp.Rect(x, y, w, h));
-        StatusText = $"模板已创建: {w}x{h}";
+        StatusText = $"模板已做好，大小 {w}×{h}";
         TemplateSizeText = $"{_matcher.Template.Width} \u00d7 {_matcher.Template.Height}";
         _templateW = _matcher.Template.Width;
         _templateH = _matcher.Template.Height;
