@@ -59,6 +59,8 @@
                   ToolTip="点这里选一张要检测的图片（bmp / jpg / png 都支持）"/>
                     <Button x:Name="BtnCreateTemplate" Content="创建模板" Style="{StaticResource CompactButton}"
                   ToolTip="点这个按钮进入画框模式，然后在图片上拖一个框选中要找的目标（松手即存为模板）"/>
+                    <!--<Button x:Name="BtnArrayPreset" Content="规则阵列预设" Style="{StaticResource CompactButton}"
+                  ToolTip="针对规则排列的相同小目标（如焊球、LED、芯片阵列）一键优化参数：关闭金字塔、角度0°、允许少量重叠、输出上限999"/>-->
 
                     <Separator Margin="0,8,0,4"/>
                     <TextBlock Text="匹配参数" FontWeight="Bold" FontSize="12" Margin="0,1,0,4"/>
@@ -79,10 +81,11 @@
                     <TextBox x:Name="TbOverlap" Text="0.1" Margin="0,0,0,4" FontSize="10.5"/>
 
                     <TextBlock Text="最多输出匹配结果数量" Style="{StaticResource ParamLabel}"/>
-                    <TextBox x:Name="TbTopN" Text="64" Margin="0,0,0,4" FontSize="10.5"/>
+                    <TextBox x:Name="TbTopN" Text="640" Margin="0,0,0,4" FontSize="10.5"/>
 
                     <TextBlock Text="金字塔层级 层级越高速度越快" Style="{StaticResource ParamLabel}"/>
-                    <ComboBox x:Name="CmbPyramid" SelectedIndex="3" IsReadOnly="True" Margin="0,0,0,4" FontSize="10.5">
+                    <ComboBox x:Name="CmbPyramid" SelectedIndex="0" IsReadOnly="True" Margin="0,0,0,4" FontSize="10.5">
+                        <ComboBoxItem>0</ComboBoxItem>
                         <ComboBoxItem>1</ComboBoxItem>
                         <ComboBoxItem>2</ComboBoxItem>
                         <ComboBoxItem>3</ComboBoxItem>

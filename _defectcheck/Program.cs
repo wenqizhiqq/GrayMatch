@@ -1,74 +1,68 @@
-using OpenCvSharp;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using GrayMatch;
+using OpenCvSharp;
 
-// Verify the defect-pixel path end-to-end (the feature behind "paint defective pixels red").
-// The native matcher's fine-pass score for this high-frequency synthetic scene is low, so we
-// feed a manually-constructed MatchResult at the known placement — exactly what the WPF does
-// after a successful match — to exercise DetectDefects + the per-pixel -> image-space mapping.
-
-var rnd = new Random(7);
-int SW = 500, SH = 400, TW = 80, TH = 60;
-int ox = 120, oy = 100;
-double cx = ox + TW / 2.0, cy = oy + TH / 2.0;   // true template center
-
-var clean = new Mat(TH, TW, MatType.CV_8UC1, new Scalar(200));
-for (int y = 0; y < TH; y++)
-    for (int x = 0; x < TW; x++)
-        clean.Set<byte>(y, x, (byte)(120 + 80 * rnd.NextDouble()));;
-
-var srcGray = new Mat(SH, SW, MatType.CV_8UC1, new Scalar(60));
-clean.CopyTo(new Mat(srcGray, new Rect(ox, oy, TW, TH)));
-// injected defects inside the template area
-Cv2.Rectangle(srcGray, new Rect(ox + 20, oy + 18, 24, 14), new Scalar(20), -1);   // dark blob
-Cv2.Line(srcGray, new Point(ox + 10, oy + 45), new Point(ox + 70, oy + 50), new Scalar(245), 2); // scratch
-
-var srcColor = new Mat();
-Cv2.CvtColor(srcGray, srcColor, ColorConversionCodes.GRAY2BGR);
-
-var m = new RotatedTemplateMatcher();
-m.SetSource(srcColor);
-m.SetTemplate(clean.Clone());
-
-// Simulate a successful match result at the known placement (angle 0).
-var result = new MatchResult
+class Program
 {
-    Index = 1,
-    Score = 0.95,
-    CenterX = cx,
-    CenterY = cy,
-    Angle = 0,
-    TemplateWidth = TW,
-    TemplateHeight = TH,
-    LeftTopX = ox,
-    LeftTopY = oy,
-    Level = 0
-};
+    static void Main()
+    {
+        string img = @"C:\Users\admin\Pictures\灰度匹配\OIP-C (1).jpeg";
+        string outDir = @"D:\wqz\code\GrayMatch\_oipctest_output";
+        Directory.CreateDirectory(outDir);
 
-var defects = m.DetectDefects(new List<MatchResult> { result });
-Console.WriteLine($"defects={defects.Count}");
+        using var src = Cv2.ImRead(img);
+        if (src.Empty()) { Console.WriteLine("FAILED to load image"); return; }
 
-int totalPixels = 0, inBounds = 0, outOfBounds = 0;
-foreach (var d in defects)
-{
-    if (d.Pixels == null) { Console.WriteLine($"  [{d.Type}] Pixels=null !!!"); continue; }
-    int set = 0;
-    for (int i = 0; i < d.Pixels.Length; i++) if (d.Pixels[i] != 0) set++;
-    totalPixels += set;
+        int tx = 18, ty = 18, tw = 34, th = 34;
+        var templ = new Mat(src, new Rect(tx, ty, tw, th)).Clone();
 
-    // Replicate the WPF red-paint mapping: upright template-local px -> image space via -angle.
-    double phi = -d.Angle * System.Math.PI / 180.0;
-    double cosv = System.Math.Cos(phi), sinv = System.Math.Sin(phi);
-    for (int ly = 0; ly < d.Ph; ly++)
-        for (int lx = 0; lx < d.Pw; lx++)
-        {
-            if (d.Pixels[ly * d.Pw + lx] == 0) continue;
-            double ux = lx - d.Tw / 2.0, uy = ly - d.Th / 2.0;
-            int ix = (int)System.Math.Round(d.CenterX + (ux * cosv - uy * sinv));
-            int iy = (int)System.Math.Round(d.CenterY + (ux * sinv + uy * cosv));
-            if (ix >= 0 && iy >= 0 && ix < SW && iy < SH) inBounds++; else outOfBounds++;
-        }
-    Console.WriteLine($"  [{d.Type}] sev={d.Score:F1} maskPixels={set} imgC=({d.ImgCx:F0},{d.ImgCy:F0}) Pw={d.Pw} Ph={d.Ph}");
+        var matcher = new RotatedTemplateMatcher();
+        matcher.LoadSource(img);
+        matcher.SetTemplate(templ);
+
+        var user = matcher.Match(4, -180, 180, 1, 0.5, 0.99, 64);
+        Save(src, user, outDir, "compare_user.jpg",
+            "user params: pyramid=4 angle=-180~180 overlap=0.99 topN=64");
+
+        var preset = matcher.Match(0, 0, 0, 1, 0.5, 0.5, 999);
+        Save(src, preset, outDir, "compare_array_preset.jpg",
+            "array preset: pyramid=0 angle=0 overlap=0.5 topN=999");
+
+        Console.WriteLine($"user={user.Count}  preset={preset.Count}");
+    }
+
+    static void Save(Mat src, List<MatchResult> results, string outDir, string filename, string caption)
+    {
+        var vis = src.Clone();
+        foreach (var r in results)
+            DrawRotatedRect(vis, r, new Scalar(0, 255, 0), 2);
+        Cv2.PutText(vis, $"{caption} => {results.Count} matches",
+            new Point(10, 20), HersheyFonts.HersheySimplex, 0.5, new Scalar(0, 0, 255), 1);
+        string path = Path.Combine(outDir, filename);
+        Cv2.ImWrite(path, vis);
+        Console.WriteLine($"saved {path}");
+    }
+
+    static void DrawRotatedRect(Mat img, MatchResult r, Scalar color, int thickness)
+    {
+        double phi = r.Angle * Math.PI / 180.0;
+        double cosv = Math.Cos(phi), sinv = Math.Sin(phi);
+        double w2 = r.TemplateWidth / 2.0, h2 = r.TemplateHeight / 2.0;
+        var pts = new Point[4];
+        pts[0] = Rotate(w2, h2, cosv, sinv, r.CenterX, r.CenterY);
+        pts[1] = Rotate(-w2, h2, cosv, sinv, r.CenterX, r.CenterY);
+        pts[2] = Rotate(-w2, -h2, cosv, sinv, r.CenterX, r.CenterY);
+        pts[3] = Rotate(w2, -h2, cosv, sinv, r.CenterX, r.CenterY);
+        for (int i = 0; i < 4; i++) Cv2.Line(img, pts[i], pts[(i + 1) % 4], color, thickness);
+    }
+
+    static Point Rotate(double ux, double uy, double cosv, double sinv, double cx, double cy)
+    {
+        return new Point(
+            (int)Math.Round(cx + (ux * cosv - uy * sinv)),
+            (int)Math.Round(cy + (ux * sinv + uy * cosv)));
+    }
 }
-
-Console.WriteLine($"TOTAL mask pixels={totalPixels}  mapped inBounds={inBounds} outOfBounds={outOfBounds}");
-Console.WriteLine(outOfBounds == 0 && totalPixels > 0 ? "CHECK_OK" : "CHECK_FAIL");

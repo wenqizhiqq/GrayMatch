@@ -100,6 +100,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         BtnCreateTemplate.Click += (_, _) => StartCreateTemplate();
         BtnMatch.Click += async (_, _) => await RunMatchAsync();
         BtnClear.Click += (_, _) => ClearResults();
+        //BtnArrayPreset.Click += (_, _) => ApplyArrayPreset();
 
         TbAngleStart.TextChanged += (_, _) => UpdateInfluenceFactors();
         TbAngleEnd.TextChanged += (_, _) => UpdateInfluenceFactors();
@@ -228,6 +229,22 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         RefreshDisplayBitmap(); // remove any painted red from a previous run
         ClearRoi();
         StatusText = "结果已清空，绿框已去掉";
+    }
+
+    /// <summary>
+    /// 针对规则排列的相同小目标（焊球、LED、芯片阵列等）一键优化参数。
+    /// 这类图用金字塔粗扫容易漏种子，且圆形目标不需要角度搜索。
+    /// </summary>
+    private void ApplyArrayPreset()
+    {
+        TbAngleStart.Text = "0";
+        TbAngleEnd.Text = "0";
+        TbAngleStep.Text = "1";
+        TbOverlap.Text = "0.5";
+        TbTopN.Text = "999";
+        CmbPyramid.SelectedIndex = 0; // 金字塔层级 = 0（全分辨率 legacy）
+        UpdateInfluenceFactors();
+        StatusText = "已切到规则阵列参数：金字塔=0、角度0°、重叠0.5、输出上限999。点「开始查找」即可";
     }
 
     private void ClearRoi()
