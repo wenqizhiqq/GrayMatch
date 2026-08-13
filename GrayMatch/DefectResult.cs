@@ -33,6 +33,13 @@ public class DefectResult
     public double ImgCx { get; set; }
     public double ImgCy { get; set; }
 
+    // Per-pixel defect mask in UPRIGHT template-local coordinates (length Pw*Ph, 255 = defect).
+    // Carried so the UI can paint the actual defective pixels red instead of drawing a box.
+    // Pw/Ph equal the template size (Tw/Th) for the instance this defect belongs to.
+    public byte[]? Pixels { get; set; }
+    public int Pw { get; set; }
+    public int Ph { get; set; }
+
     // rect top-left (pre-rotation) relative to the item canvas, so its center sits on the defect
     public double BoxLeft => ImgCx - LeftTopX - W / 2.0;
     public double BoxTop => ImgCy - LeftTopY - H / 2.0;

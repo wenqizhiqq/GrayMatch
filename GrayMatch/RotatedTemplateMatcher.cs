@@ -187,11 +187,11 @@ public class RotatedTemplateMatcher : IDisposable
         if (edgeTolerance > 0)
         {
             edgeBand = new Mat();
-            using (var gk = Cv2.GetStructuringElement(MorphShapes.Rect, new Size(3, 3)))
+            using (var gk = Cv2.GetStructuringElement(MorphShapes.Rect, new OpenCvSharp.Size(3, 3)))
                 Cv2.MorphologyEx(tmpl, edgeBand, MorphTypes.Gradient, gk);
             Cv2.Threshold(edgeBand, edgeBand, edgeGradThresh, 255, ThresholdTypes.Binary);
             int ks = edgeTolerance * 2 + 1;
-            using (var ek = Cv2.GetStructuringElement(MorphShapes.Ellipse, new Size(ks, ks)))
+            using (var ek = Cv2.GetStructuringElement(MorphShapes.Ellipse, new OpenCvSharp.Size(ks, ks)))
                 Cv2.Dilate(edgeBand, edgeBand, ek);
         }
 
@@ -219,7 +219,7 @@ public class RotatedTemplateMatcher : IDisposable
             m.Set<double>(1, 2, m.Get<double>(1, 2) - oy);
 
             using var patch = new Mat();
-            Cv2.WarpAffine(srcGray, patch, m, new Size(tw, th), (InterpolationFlags)1, BorderTypes.Replicate);
+            Cv2.WarpAffine(srcGray, patch, m, new OpenCvSharp.Size(tw, th), (InterpolationFlags)1, BorderTypes.Replicate);
 
             using var diff = new Mat();
             Cv2.Absdiff(tmpl, patch, diff);
@@ -235,7 +235,7 @@ public class RotatedTemplateMatcher : IDisposable
             // (b) erode: thin residual edge slivers collapse to nothing.
             if (erodeSize > 1)
             {
-                using var ek = Cv2.GetStructuringElement(MorphShapes.Rect, new Size(erodeSize, erodeSize));
+                using var ek = Cv2.GetStructuringElement(MorphShapes.Rect, new OpenCvSharp.Size(erodeSize, erodeSize));
                 Cv2.Erode(mask, mask, ek);
             }
 
@@ -243,7 +243,7 @@ public class RotatedTemplateMatcher : IDisposable
             //     that the erosion broke into dashes. Keep dilate >= erode.
             if (dilateSize > 1)
             {
-                using var dk = Cv2.GetStructuringElement(MorphShapes.Rect, new Size(dilateSize, dilateSize));
+                using var dk = Cv2.GetStructuringElement(MorphShapes.Rect, new OpenCvSharp.Size(dilateSize, dilateSize));
                 Cv2.Dilate(mask, mask, dk);
             }
 
@@ -269,7 +269,7 @@ public class RotatedTemplateMatcher : IDisposable
                 double ar = longSide / Math.Max(1.0, shortSide);
 
                 using var cmask = new Mat(th, tw, MatType.CV_8UC1, Scalar.All(0));
-                Cv2.DrawContours(cmask, new List<Point[]> { c }, 0, Scalar.All(255), -1);
+                Cv2.DrawContours(cmask, new List<OpenCvSharp.Point[]> { c }, 0, Scalar.All(255), -1);
                 double mT = Cv2.Mean(tmpl, cmask).Val0;
                 double mP = Cv2.Mean(patch, cmask).Val0;
                 double sev = Cv2.Mean(diff, cmask).Val0;
@@ -319,7 +319,11 @@ public class RotatedTemplateMatcher : IDisposable
                     ImgCx = imgCx,
                     ImgCy = imgCy,
                     Type = type,
-                    Score = sev
+                    Score = sev,
+                    // carry the actual defective pixels (template-local) so the UI can paint them red
+                    Pixels = CopyMask(cmask, tw, th),
+                    Pw = tw,
+                    Ph = th
                 });
                 foundLocal = true;
             }
@@ -363,6 +367,14 @@ public class RotatedTemplateMatcher : IDisposable
         }
 
         return outList;
+    }
+
+    /// <summary>Copies a continuous CV_8UC1 mask (th rows x tw cols) into a managed byte[].</summary>
+    private static byte[] CopyMask(Mat mask, int tw, int th)
+    {
+        var buf = new byte[tw * th];
+        System.Runtime.InteropServices.Marshal.Copy(mask.Data, buf, 0, buf.Length);
+        return buf;
     }
 
 

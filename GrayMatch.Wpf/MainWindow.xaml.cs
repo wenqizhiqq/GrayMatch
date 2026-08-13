@@ -53,6 +53,9 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private BitmapSource? _sourceBitmap;
     public BitmapSource? SourceBitmap { get => _sourceBitmap; set => Set(ref _sourceBitmap, value); }
 
+    // original color source, kept so defect pixels can be repainted red without re-decoding the file
+    private OpenCvSharp.Mat? _sourceColor;
+
     public ObservableCollection<MatchResult> Results { get; } = new();
     public ObservableCollection<DefectResult> Defects { get; } = new();
 
@@ -120,7 +123,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         await Task.Run(() => _matcher.LoadSource(dlg.FileName));
 
         var mat = _matcher.Source;
-        SourceBitmap = MatToBitmapSource(mat);
+        _sourceColor = mat.Clone();
+        RefreshDisplayBitmap();
         ImageWidth = mat.Width;
         ImageHeight = mat.Height;
         ImageSizeText = $"{mat.Width} \u00d7 {mat.Height}";
@@ -201,11 +205,14 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             var defects = await Task.Run(() => _matcher.DetectDefects(results), _matchCts.Token);
             foreach (var d in defects) Defects.Add(d);
             DefectSummaryText = BuildDefectSummary(defects);
+            // paint defective pixels red directly on the image (no overlay box)
+            RefreshDisplayBitmap(defects);
             StatusText = $"查找完成：共找到 {results.Count} 个目标，其中 {defects.Count} 处有缺陷，用时 {_matcher.LastMatchMs:F1} 毫秒";
         }
         else
         {
             DefectSummaryText = "-";
+            RefreshDisplayBitmap(); // clear any previously painted red
             StatusText = $"查找完成：共找到 {results.Count} 个目标，用时 {_matcher.LastMatchMs:F1} 毫秒";
         }
         MatchMsText = $"{_matcher.LastMatchMs:F1} ms";
@@ -218,6 +225,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         Results.Clear();
         Defects.Clear();
         DefectSummaryText = "-";
+        RefreshDisplayBitmap(); // remove any painted red from a previous run
         ClearRoi();
         StatusText = "结果已清空，绿框已去掉";
     }
@@ -254,16 +262,67 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             System.Globalization.CultureInfo.InvariantCulture, out double v) ? v : fallback;
     }
 
-    private static System.Windows.Media.Imaging.BitmapSource MatToBitmapSource(OpenCvSharp.Mat mat)
+    /// <summary>
+    /// (Re)builds the displayed bitmap from the original color source and, when <paramref name="defects"/>
+    /// is given, paints each defective pixel red directly on the image (no overlay box).
+    /// </summary>
+    private void RefreshDisplayBitmap(System.Collections.Generic.IReadOnlyList<DefectResult>? defects = null)
     {
-        var bytes = mat.ImEncode(".png");
-        using var ms = new System.IO.MemoryStream(bytes);
-        var bmp = new System.Windows.Media.Imaging.BitmapImage();
-        bmp.BeginInit();
-        bmp.StreamSource = ms;
-        bmp.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
-        bmp.EndInit();
-        return bmp;
+        if (_sourceColor == null) return;
+        int w = _sourceColor.Width, h = _sourceColor.Height;
+        int ch = _sourceColor.Channels();
+        if (ch < 3) return; // defect painting only makes sense on a color image
+
+        int srcStride = (int)_sourceColor.Step();
+        var wb = new System.Windows.Media.Imaging.WriteableBitmap(w, h, 96, 96,
+            System.Windows.Media.PixelFormats.Bgr24, null);
+        wb.Lock();
+        IntPtr back = wb.BackBuffer;
+        int dstStride = wb.BackBufferStride;
+
+        // copy the whole color image into the back buffer, row by row (handles any row padding)
+        var row = new byte[w * 3];
+        for (int y = 0; y < h; y++)
+        {
+            System.Runtime.InteropServices.Marshal.Copy(_sourceColor.Data + y * srcStride, row, 0, w * 3);
+            System.Runtime.InteropServices.Marshal.Copy(row, 0, back + y * dstStride, w * 3);
+        }
+
+        // paint defective pixels red
+        if (defects != null && defects.Count > 0)
+        {
+            var px = new byte[dstStride * h];
+            System.Runtime.InteropServices.Marshal.Copy(back, px, 0, px.Length);
+            foreach (var d in defects)
+            {
+                if (d.Pixels == null || d.Pw <= 0 || d.Ph <= 0) continue;
+                double phi = -d.Angle * System.Math.PI / 180.0;
+                double cosv = System.Math.Cos(phi), sinv = System.Math.Sin(phi);
+                double tw = d.Tw, th = d.Th;
+                for (int ly = 0; ly < d.Ph; ly++)
+                {
+                    int baseOff = ly * d.Pw;
+                    for (int lx = 0; lx < d.Pw; lx++)
+                    {
+                        if (d.Pixels[baseOff + lx] == 0) continue;
+                        double ux = lx - tw / 2.0;
+                        double uy = ly - th / 2.0;
+                        int ix = (int)System.Math.Round(d.CenterX + (ux * cosv - uy * sinv));
+                        int iy = (int)System.Math.Round(d.CenterY + (ux * sinv + uy * cosv));
+                        if (ix < 0 || iy < 0 || ix >= w || iy >= h) continue;
+                        int idx = iy * dstStride + ix * 3;
+                        px[idx] = 0;       // B
+                        px[idx + 1] = 0;   // G
+                        px[idx + 2] = 255; // R
+                    }
+                }
+            }
+            System.Runtime.InteropServices.Marshal.Copy(px, 0, back, px.Length);
+        }
+
+        wb.AddDirtyRect(new System.Windows.Int32Rect(0, 0, w, h));
+        wb.Unlock();
+        SourceBitmap = wb;
     }
 
     #region Canvas / mouse interaction

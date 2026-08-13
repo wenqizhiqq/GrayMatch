@@ -140,9 +140,9 @@
                      TextChanged="DefectParam_Changed"
                      ToolTip="没有局部缺陷但整体平均差值超过该值时，标一个“亮度/对比度异常”小徽标。调高可关闭该提示。"/>
 
-                            <Button x:Name="BtnDefectReset" Content="恢复默认参数" Height="24" Margin="0,5,0,0" FontSize="10.5"
+                            <!--<Button x:Name="BtnDefectReset" Content="恢复默认参数" Height="24" Margin="0,5,0,0" FontSize="10.5"
                     Click="BtnDefectReset_Click"
-                    ToolTip="把上面的缺陷参数恢复成默认值"/>
+                    ToolTip="把上面的缺陷参数恢复成默认值"/>-->
                         </StackPanel>
                     </Border>
 
@@ -242,7 +242,7 @@
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
 
-                        <!-- 缺陷检测叠加层（红色半透明 + 红色文字） -->
+                        <!-- 缺陷检测叠加层：缺陷像素已在图像上直接用红色标出，这里只保留类型文字说明 -->
                         <ItemsControl ItemsSource="{Binding Defects}">
                             <ItemsControl.ItemsPanel>
                                 <ItemsPanelTemplate>
@@ -258,14 +258,6 @@
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <Canvas>
-                                        <Rectangle Canvas.Left="{Binding BoxLeft}" Canvas.Top="{Binding BoxTop}"
-                                       Width="{Binding W}" Height="{Binding H}"
-                                       Fill="Red" Opacity="0.35" Stroke="Red" StrokeThickness="1.5"
-                                       RenderTransformOrigin="0.5,0.5">
-                                            <Rectangle.RenderTransform>
-                                                <RotateTransform Angle="{Binding RectAngle}"/>
-                                            </Rectangle.RenderTransform>
-                                        </Rectangle>
                                         <TextBlock Canvas.Left="{Binding TextLeft}" Canvas.Top="{Binding TextTop}"
                                        Foreground="Red" FontSize="12" FontWeight="Bold"
                                        Text="{Binding Type}"/>
