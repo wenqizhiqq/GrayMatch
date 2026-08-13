@@ -64,7 +64,7 @@ int main() {
         for (int p : { 0, 4 }) {
             printf("\n=== pyramid=%d, angle [-5..65] step 1, thr=%.2f ===\n", p, thr);
             double t0 = nowMs();
-            int n = gm_match(h, p, -5.0, 65.0, 1.0, thr, overlap, topN, out, 128);
+            int n = gm_match(h, p, -5.0, 65.0, 1.0, thr, overlap, topN, 0, out, 128);
             double dt = gm_get_last_match_ms(h);
             printf("Detected %d in %.2f ms (wall %.2f ms)\n", n, dt, nowMs() - t0);
 

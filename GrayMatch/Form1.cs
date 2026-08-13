@@ -237,7 +237,8 @@ public partial class Form1 : Form
         List<MatchResult> results;
         try
         {
-            results = await Task.Run(() => _matcher.Match(pyramid, start, end, step, threshold, overlap, topN), token);
+            // 密集模式现为默认行为：始终开启（关闭 24 种子上限），规则阵列也能全检出
+            results = await Task.Run(() => _matcher.Match(pyramid, start, end, step, threshold, overlap, topN, 1), token);
         }
         catch (OperationCanceledException)
         {

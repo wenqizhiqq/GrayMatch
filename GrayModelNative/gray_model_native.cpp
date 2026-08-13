@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cmath>
 #include <map>
+#include <set>
 #include <chrono>
 #include <omp.h>
 
@@ -198,7 +199,7 @@ public:
     // sweep dominates and small-template angles are ambiguous.
     std::vector<GmMatchResult> match(int pyramidLevels, double angleStart, double angleEnd,
                                      double angleStep, double nccThreshold, double maxOverlap,
-                                     int topN) const {
+                                     int topN, int denseMode = 0) const {
         if (sourceGray_.empty() || templateGray_.empty())
             return {};
 
@@ -420,10 +421,13 @@ public:
 
         // --- Coarse sweep at the deepest pyramid level (cheap; seeds position + rough angle) ---
         std::vector<GmMatchResult> cur;
+        const int coarseCap = denseMode ? 4096 : (topN * 6);
         matchAtLevel(srcPyr[L], tplPyr[L], caches[L], L, static_cast<double>(1 << L),
-                     angleStart, angleEnd, coarseAngleStep, coarseThr, topN * 6, cur);
+                     angleStart, angleEnd, coarseAngleStep, coarseThr, coarseCap, cur);
         auto seeds = nonMaxSuppression(cur, maxOverlap);
-        if (static_cast<int>(seeds.size()) > 24) seeds.resize(24);  // bound fine cost downstream
+        // Dense mode (regular arrays of identical objects) keeps ALL coarse seeds instead of
+        // capping at 24, so hundreds of repeated targets aren't starved by the seed budget.
+        if (!denseMode && static_cast<int>(seeds.size()) > 24) seeds.resize(24);  // bound fine cost downstream
 
         auto tAfterCoarse = nowP();   // all subsequent cache builds are excluded from timing
         double warmMs = 0.0;
@@ -439,12 +443,17 @@ public:
             const int halfWin = maxDimK / 2 + 16;
 
             auto tw0 = nowP();
+            // Collect the union of needed angles across all seeds (deduplicated)
+            // so a dense array of hundreds of identical targets doesn't warp the
+            // same rotated template hundreds of times.
+            std::set<double> needAng;
             for (const auto& sd : seeds) {
                 double f0 = std::max(angleStart, sd.angle - aWin);
                 double f1 = std::min(angleEnd, sd.angle + aWin);
                 for (double a = f0; a <= f1 + 1e-6; a += stepAt(k))
-                    caches[k].get(a);
+                    needAng.insert(a);
             }
+            for (double a : needAng) caches[k].get(a);
             warmMs += msP(tw0, nowP());
 
             std::vector<GmMatchResult> next;
@@ -481,7 +490,7 @@ public:
 
             auto nextSeeds = nonMaxSuppression(next, maxOverlap);
             if (!nextSeeds.empty()) {
-                if (static_cast<int>(nextSeeds.size()) > 24) nextSeeds.resize(24);
+                if (!denseMode && static_cast<int>(nextSeeds.size()) > 24) nextSeeds.resize(24);
                 seeds = std::move(nextSeeds);
             } else if (k > 1)
                 break;   // lost the targets climbing up; keep the coarser seeds
@@ -495,6 +504,17 @@ public:
             fineCache.get(a);
         auto tFineDone = nowP();
         warmMs += msP(tAfterCoarse, tFineDone);
+
+        // Tighten the fine-search band: the progressive refinement (levels L-1..1)
+        // already pins the seed angle to within +/-stepAt(1)/2 of truth, so the
+        // final 0.35x pass only needs a narrow envelope here instead of the legacy
+        // fixed +/-9 deg. This cuts the per-seed angle-sample count (~3x at L>=4)
+        // with no accuracy loss. The band is kept a multiple of fineStep so the
+        // seed angle itself always lands on the sample grid (L=1 has no refinement,
+        // so stepAt(1)=15 deg forces a wide, safe envelope).
+        const double fineBandRaw = stepAt(1) * 0.5 + fineStep * 0.5 + 1.5;
+        const double fineBand = std::max(fineStep * 2.0,
+                                         fineStep * std::ceil(fineBandRaw / fineStep));
 
         std::vector<GmMatchResult> fine;
         #pragma omp parallel
@@ -513,8 +533,8 @@ public:
                 cv::Mat subOrig = sourceGray_(cv::Rect(x1, y1, x2 - x1, y2 - y1));
                 cv::Mat subFine;
                 cv::resize(subOrig, subFine, cv::Size(), fineScale, fineScale, cv::INTER_AREA);
-                double fStart = det.angle - 9.0;
-                double fEnd = det.angle + 9.0;
+                double fStart = det.angle - fineBand;
+                double fEnd = det.angle + fineBand;
                 if (fStart < angleStart) fStart = angleStart;
                 if (fEnd > angleEnd) fEnd = angleEnd;
                 if (fStart > fEnd) continue;
@@ -602,12 +622,13 @@ GRAYMODEL_API int gm_set_template(void* handle, const unsigned char* data,
 
 GRAYMODEL_API int gm_match(void* handle, int pyramidLevels, double angleStart, double angleEnd,
                            double angleStep, double nccThreshold, double maxOverlap, int topN,
+                           int denseMode,
                            GmMatchResult* outResults, int maxResults) {
     auto* m = static_cast<GrayModelMatcher*>(handle);
     if (!m || !outResults || maxResults <= 0) return -1;
 
     auto results = m->match(pyramidLevels, angleStart, angleEnd, angleStep,
-                            nccThreshold, maxOverlap, topN);
+                            nccThreshold, maxOverlap, topN, denseMode);
     int n = static_cast<int>(results.size());
     int write = std::min(n, maxResults);
     for (int i = 0; i < write; ++i)

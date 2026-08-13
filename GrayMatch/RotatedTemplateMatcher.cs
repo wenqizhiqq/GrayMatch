@@ -61,7 +61,8 @@ public class RotatedTemplateMatcher : IDisposable
         double angleStep,
         double nccThreshold,
         double maxOverlap,
-        int topN)
+        int topN,
+        int denseMode = 0)
     {
         if (_sourceGray == null || _template == null)
             throw new InvalidOperationException("Source and template must be set before matching.");
@@ -77,10 +78,13 @@ public class RotatedTemplateMatcher : IDisposable
             if (s != 0 || t != 0)
                 throw new InvalidOperationException("Failed to set source/template in native matcher.");
 
-            var buffer = new GmMatchResult[topN];
+            // Dense mode can return far more than topN distinct matches on a regular array,
+            // so grow the native result buffer when enabled to avoid silent truncation.
+            int bufSize = denseMode != 0 ? Math.Max(topN, 4096) : topN;
+            var buffer = new GmMatchResult[bufSize];
             int written = gm_match(
                 handle, pyramidLevels, angleStart, angleEnd, angleStep,
-                nccThreshold, maxOverlap, topN, buffer, buffer.Length);
+                nccThreshold, maxOverlap, topN, denseMode, buffer, buffer.Length);
 
             if (written < 0)
                 return new List<MatchResult>();
@@ -418,6 +422,7 @@ public class RotatedTemplateMatcher : IDisposable
         double nccThreshold,
         double maxOverlap,
         int topN,
+        int denseMode,
         [In, Out] GmMatchResult[] outResults,
         int maxResults);
 

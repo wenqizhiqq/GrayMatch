@@ -22,10 +22,10 @@
 
   <Target Name="CopyNativeDeps" AfterTargets="Build">
     <ItemGroup>
-      <NativeDll Include="..\GrayModelNative\build-ninja7\GrayModelNative.dll" />
+      <NativeDll Include="..\GrayModelNative\build-ninja9\GrayModelNative.dll" />
       <NativeDll Include="..\ext\opencv\opencv\build\x64\vc16\bin\opencv_world480.dll" />
     </ItemGroup>
-    <Copy SourceFiles="@(NativeDll)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" Condition="Exists('%(Identity)')" />
+    <Copy SourceFiles="@(NativeDll)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="false" Condition="Exists('%(Identity)')" />
   </Target>
 
 </Project>

@@ -86,7 +86,7 @@ int main() {
         std::vector<double> times; int lastN = 0;
         for (int r = 0; r < N; ++r) {
             GmMatchResult out[128];
-            int n = gm_match(h, p, a0, a1, step, thr, 0.25, topN, out, 128);
+            int n = gm_match(h, p, a0, a1, step, thr, 0.25, topN, 0, out, 128);
             if (r >= 3) { times.push_back(gm_get_last_match_ms(h)); lastN = n; }
         }
         std::sort(times.begin(), times.end());
@@ -111,7 +111,7 @@ int main() {
         std::vector<double> times; std::vector<GmMatchResult> last;
         for (int r = 0; r < N; ++r) {
             GmMatchResult out[64];
-            int n = gm_match(h, p, -90, 90, 5, 0.35, 0.25, 20, out, 64);
+            int n = gm_match(h, p, -90, 90, 5, 0.35, 0.25, 20, 0, out, 64);
             if (r >= 3) { times.push_back(gm_get_last_match_ms(h)); if (r == N - 1) last.assign(out, out + n); }
         }
         std::sort(times.begin(), times.end());

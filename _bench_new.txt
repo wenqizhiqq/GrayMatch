@@ -1,0 +1,43 @@
+==================================================================
+ TEST 1 : 800x600, 4 targets @ {0,30,60,-45}, range [-90,90] step 5
+          expected: count>=4, score>=0.35, |angleErr|<=2.5, box 120x80
+------------------------------------------------------------------
+pyramid       count     tMin     tMed     tMax angleErr/box/score
+0                 4     8.68     9.79    11.09  angErr=6.00 boxBad=0 minScore=0.768
+1                 4    46.91    50.78    59.19  angErr=0.00 boxBad=0 minScore=0.921
+2                 4     9.37    10.76    11.99  angErr=0.00 boxBad=0 minScore=0.921
+3                 4     2.17     2.41     2.77  angErr=0.00 boxBad=0 minScore=0.921
+4                 4     2.07     2.21     2.75  angErr=0.00 boxBad=0 minScore=0.921
+
+==================================================================
+ TEST 2 : 900x600, 4 targets, full sweep [-180,180] step 1 (perf)
+          expected: count>=3
+------------------------------------------------------------------
+  pyramid=1  count=4  median=99.22 ms
+  pyramid=2  count=4  median=16.75 ms
+  pyramid=3  count=4  median=4.56 ms
+  pyramid=4  count=4  median=4.64 ms
+
+==================================================================
+ TEST 3 : 1600x1200 LARGE, normal 120x80 template, full [-180,180] step 1
+          compare legacy(pyramid=0) vs pyramid to show speedup on big images
+------------------------------------------------------------------
+  pyramid=0  count=4  median=62.88 ms
+  pyramid=1  count=4  median=218.28 ms
+  pyramid=2  count=4  median=52.41 ms
+  pyramid=3  count=4  median=11.04 ms
+  pyramid=4  count=4  median=11.32 ms
+
+==================================================================
+ TEST 4 : 1600x1200 LARGE, SMALL 32x18 template, full [-180,180] step 1
+          THE REGRESSION CASE (small template forced old L->1, coarse blowup)
+------------------------------------------------------------------
+    diag: minTpl=18 minSrc=1200 pyramid=4
+      OLD -> L=1  coarseImg=600x600  coarseStep=2.0 deg  ~180 angles  coarsePxAng=6.5e+07
+      NEW -> L=2  coarseImg=300x300  coarseStep=15.0 deg  ~24 angles  coarsePxAng=2.2e+06
+  pyramid=0  count=5  median=44.99 ms
+  pyramid=1  count=4  median=174.59 ms
+  pyramid=2  count=4  median=42.07 ms
+  pyramid=4  count=4  median=40.07 ms
+
+DONE

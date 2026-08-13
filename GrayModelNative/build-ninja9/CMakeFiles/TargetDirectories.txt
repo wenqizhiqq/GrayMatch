@@ -1,0 +1,3 @@
+D:/wqz/code/GrayMatch/GrayModelNative/build-ninja9/CMakeFiles/GrayModelNative.dir
+D:/wqz/code/GrayMatch/GrayModelNative/build-ninja9/CMakeFiles/edit_cache.dir
+D:/wqz/code/GrayMatch/GrayModelNative/build-ninja9/CMakeFiles/rebuild_cache.dir

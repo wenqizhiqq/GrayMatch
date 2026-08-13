@@ -59,16 +59,13 @@
                   ToolTip="点这里选一张要检测的图片（bmp / jpg / png 都支持）"/>
                     <Button x:Name="BtnCreateTemplate" Content="创建模板" Style="{StaticResource CompactButton}"
                   ToolTip="点这个按钮进入画框模式，然后在图片上拖一个框选中要找的目标（松手即存为模板）"/>
-                    <!--<Button x:Name="BtnArrayPreset" Content="规则阵列预设" Style="{StaticResource CompactButton}"
-                  ToolTip="针对规则排列的相同小目标（如焊球、LED、芯片阵列）一键优化参数：关闭金字塔、角度0°、允许少量重叠、输出上限999"/>-->
-
                     <Separator Margin="0,8,0,4"/>
                     <TextBlock Text="匹配参数" FontWeight="Bold" FontSize="12" Margin="0,1,0,4"/>
 
                     <TextBlock Text="起始角度(度) -180~180" Style="{StaticResource ParamLabel}"/>
                     <TextBox x:Name="TbAngleStart" Text="-180" Margin="0,0,0,4" FontSize="10.5"/>
 
-                    <TextBlock Text="终止角度(度)" Style="{StaticResource ParamLabel}"/>
+                    <TextBlock Text="终止角度(度) -180~180" Style="{StaticResource ParamLabel}"/>
                     <TextBox x:Name="TbAngleEnd" Text="180" Margin="0,0,0,4" FontSize="10.5"/>
 
                     <TextBlock Text="角度步长(度) 越大越快精度越低" Style="{StaticResource ParamLabel}"/>
@@ -77,13 +74,13 @@
                     <TextBlock Text="NCC相似度阈值 0~1，越高越严格" Style="{StaticResource ParamLabel}"/>
                     <TextBox x:Name="TbThreshold" Text="0.5" Margin="0,0,0,4" FontSize="10.5"/>
 
-                    <TextBlock Text="最大允许重叠 过滤重复匹配" Style="{StaticResource ParamLabel}"/>
+                    <TextBlock Text="最大允许重叠0-1 过滤重复匹配" Style="{StaticResource ParamLabel}"/>
                     <TextBox x:Name="TbOverlap" Text="0.1" Margin="0,0,0,4" FontSize="10.5"/>
 
                     <TextBlock Text="最多输出匹配结果数量" Style="{StaticResource ParamLabel}"/>
                     <TextBox x:Name="TbTopN" Text="640" Margin="0,0,0,4" FontSize="10.5"/>
 
-                    <TextBlock Text="金字塔层级 层级越高速度越快" Style="{StaticResource ParamLabel}"/>
+                    <TextBlock Text="金字塔层级 层级越高速度越快越容易漏检" Style="{StaticResource ParamLabel}"/>
                     <ComboBox x:Name="CmbPyramid" SelectedIndex="0" IsReadOnly="True" Margin="0,0,0,4" FontSize="10.5">
                         <ComboBoxItem>0</ComboBoxItem>
                         <ComboBoxItem>1</ComboBoxItem>
@@ -93,6 +90,10 @@
                         <ComboBoxItem>5</ComboBoxItem>
                         <ComboBoxItem>6</ComboBoxItem>
                     </ComboBox>
+
+                    <CheckBox x:Name="ChkDense" Content="密集模式（适合规则阵列）" Margin="0,6,0,2" FontSize="11" IsChecked="True"
+                      ToolTip="勾选：粗扫不限制种子数量，可把规则阵列（如焊球阵列）里成百上千个相同目标全部检出；代价是密集图上耗时会升到十几毫秒（实测 ±45°≈15ms、全 360°≈38ms）。&#10;不勾选：种子上限 24，速度回到几毫秒（实测 ±45°≈5ms），但规则阵列里的大部分重复目标会被漏检，只保留少量代表。"/>
+                    <TextBlock Text="勾选=规则阵列全检出（密集图较慢）；不勾选=速度快但阵列易漏检" Style="{StaticResource CompactText}" Foreground="Gray" Margin="0,0,0,2"/>
 
                     <Separator Margin="0,8,0,4"/>
 
@@ -168,7 +169,7 @@
                     <TextBlock Text="{Binding MatchMsText}" Margin="0,0,0,4" FontWeight="SemiBold" FontSize="10.5"/>
 
                     <TextBlock Text="缺陷统计" Style="{StaticResource ParamLabel}"/>
-                    <TextBlock Text="{Binding DefectSummaryText}" Margin="0,0,0,4" FontWeight="SemiBold" FontSize="10.5" Foreground="Red"/>
+                    <TextBlock Text="{Binding DefectSummaryText}" Margin="0,0,0,4" FontWeight="SemiBold" FontSize="10.5" Foreground="Yellow"/>
 
 
 
@@ -262,7 +263,7 @@
                                 <DataTemplate>
                                     <Canvas>
                                         <TextBlock Canvas.Left="{Binding TextLeft}" Canvas.Top="{Binding TextTop}"
-                                       Foreground="Red" FontSize="12" FontWeight="Bold"
+                                       Foreground="Yellow" FontSize="12" FontWeight="Bold"
                                        Text="{Binding Type}"/>
                                     </Canvas>
                                 </DataTemplate>

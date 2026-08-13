@@ -54,6 +54,7 @@ GRAYMODEL_API int gm_match(void* handle,
                            double nccThreshold,
                            double maxOverlap,
                            int topN,
+                           int denseMode,
                            GmMatchResult* outResults,
                            int maxResults);
 
