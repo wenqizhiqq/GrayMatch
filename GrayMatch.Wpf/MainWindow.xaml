@@ -72,7 +72,7 @@
                     <TextBox x:Name="TbAngleStep" Text="1" Margin="0,0,0,4" FontSize="10.5"/>
 
                     <TextBlock Text="NCC相似度阈值 0~1，越高越严格，匹配数量越少" Style="{StaticResource ParamLabel}"/>
-                    <TextBox x:Name="TbThreshold" Text="0.5" Margin="0,0,0,4" FontSize="10.5"/>
+                    <TextBox x:Name="TbThreshold" Text="0.9" Margin="0,0,0,4" FontSize="10.5"/>
 
                     <TextBlock Text="最大允许重叠0-1 过滤重复匹配，越大越宽松" Style="{StaticResource ParamLabel}"/>
                     <TextBox x:Name="TbOverlap" Text="0.1" Margin="0,0,0,4" FontSize="10.5"/>
