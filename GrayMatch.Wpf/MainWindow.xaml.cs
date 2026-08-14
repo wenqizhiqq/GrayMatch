@@ -100,7 +100,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         BtnCreateTemplate.Click += (_, _) => StartCreateTemplate();
         BtnMatch.Click += async (_, _) => await RunMatchAsync();
         BtnClear.Click += (_, _) => ClearResults();
-        // 密集模式由 ChkDense 勾选框控制（默认勾选，保持规则阵列全检出）
+        // 密集模式由 ChkDense 勾选框控制（默认不勾选=快速；遇到规则阵列再勾选做全检出）
 
         TbAngleStart.TextChanged += (_, _) => UpdateInfluenceFactors();
         TbAngleEnd.TextChanged += (_, _) => UpdateInfluenceFactors();
