@@ -62,22 +62,22 @@
                     <Separator Margin="0,8,0,4"/>
                     <TextBlock Text="匹配参数" FontWeight="Bold" FontSize="12" Margin="0,1,0,4"/>
 
-                    <TextBlock Text="起始角度(度) -180~180" Style="{StaticResource ParamLabel}"/>
+                    <TextBlock Text="起始角度(度) -180~180，越大越快精度越低" Style="{StaticResource ParamLabel}"/>
                     <TextBox x:Name="TbAngleStart" Text="-180" Margin="0,0,0,4" FontSize="10.5"/>
 
-                    <TextBlock Text="终止角度(度) -180~180" Style="{StaticResource ParamLabel}"/>
+                    <TextBlock Text="终止角度(度) -180~180，越大越快精度越低" Style="{StaticResource ParamLabel}"/>
                     <TextBox x:Name="TbAngleEnd" Text="180" Margin="0,0,0,4" FontSize="10.5"/>
 
-                    <TextBlock Text="角度步长(度) 越大越快精度越低" Style="{StaticResource ParamLabel}"/>
+                    <TextBlock Text="角度步长(度) 越大越快精度越低，越小越慢精度越高" Style="{StaticResource ParamLabel}"/>
                     <TextBox x:Name="TbAngleStep" Text="1" Margin="0,0,0,4" FontSize="10.5"/>
 
-                    <TextBlock Text="NCC相似度阈值 0~1，越高越严格" Style="{StaticResource ParamLabel}"/>
+                    <TextBlock Text="NCC相似度阈值 0~1，越高越严格，匹配数量越少" Style="{StaticResource ParamLabel}"/>
                     <TextBox x:Name="TbThreshold" Text="0.5" Margin="0,0,0,4" FontSize="10.5"/>
 
-                    <TextBlock Text="最大允许重叠0-1 过滤重复匹配" Style="{StaticResource ParamLabel}"/>
+                    <TextBlock Text="最大允许重叠0-1 过滤重复匹配，越大越宽松" Style="{StaticResource ParamLabel}"/>
                     <TextBox x:Name="TbOverlap" Text="0.1" Margin="0,0,0,4" FontSize="10.5"/>
 
-                    <TextBlock Text="最多输出匹配结果数量" Style="{StaticResource ParamLabel}"/>
+                    <TextBlock Text="最多输出匹配结果数量，超过了就不匹配" Style="{StaticResource ParamLabel}"/>
                     <TextBox x:Name="TbTopN" Text="640" Margin="0,0,0,4" FontSize="10.5"/>
 
                     <TextBlock Text="金字塔层级 层级越高速度越快越容易漏检" Style="{StaticResource ParamLabel}"/>
@@ -91,7 +91,7 @@
                         <ComboBoxItem>6</ComboBoxItem>
                     </ComboBox>
 
-                    <CheckBox x:Name="ChkDense" Content="密集模式（适合规则阵列）" Margin="0,6,0,2" FontSize="11" IsChecked="False"
+                    <CheckBox x:Name="ChkDense" Content="密集模式（适合规则阵列）" Margin="0,6,0,2" FontSize="11" IsChecked="True"
                       ToolTip="默认不勾选（快速）：种子上限 24，稀疏/普通图几毫秒（实测 ±45°≈5ms），但规则阵列里的大部分重复目标会被漏检，只保留少量代表。&#10;勾选（规则阵列）：粗扫不限制种子数量，可把焊球阵列等成百上千个相同目标全部检出；代价是密集图上耗时会升到十几毫秒（实测 ±45°≈15ms、全 360°≈38ms）。"/>
                     <TextBlock Text="默认不勾选=快速(几毫秒); 规则阵列/密集图才勾选=全检出(较慢)" Style="{StaticResource CompactText}" Foreground="Gray" Margin="0,0,0,2"/>
 
