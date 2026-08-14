@@ -91,7 +91,7 @@
                         <ComboBoxItem>6</ComboBoxItem>
                     </ComboBox>
 
-                    <CheckBox x:Name="ChkDense" Content="密集模式（适合规则阵列）" Margin="0,6,0,2" FontSize="11" IsChecked="True"
+                    <CheckBox x:Name="ChkDense" Content="密集模式（适合规则阵列）" Margin="0,6,0,2" FontSize="11" IsChecked="False"
                       ToolTip="默认不勾选（快速）：种子上限 24，稀疏/普通图几毫秒（实测 ±45°≈5ms），但规则阵列里的大部分重复目标会被漏检，只保留少量代表。&#10;勾选（规则阵列）：粗扫不限制种子数量，可把焊球阵列等成百上千个相同目标全部检出；代价是密集图上耗时会升到十几毫秒（实测 ±45°≈15ms、全 360°≈38ms）。"/>
                     <TextBlock Text="默认不勾选=快速(几毫秒); 规则阵列/密集图才勾选=全检出(较慢)" Style="{StaticResource CompactText}" Foreground="Gray" Margin="0,0,0,2"/>
 
