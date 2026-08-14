@@ -81,7 +81,7 @@
                     <TextBox x:Name="TbTopN" Text="640" Margin="0,0,0,4" FontSize="10.5"/>
 
                     <TextBlock Text="金字塔层级 层级越高速度越快越容易漏检" Style="{StaticResource ParamLabel}"/>
-                    <ComboBox x:Name="CmbPyramid" SelectedIndex="4" IsReadOnly="True" Margin="0,0,0,4" FontSize="10.5">
+                    <ComboBox x:Name="CmbPyramid" SelectedIndex="0" IsReadOnly="True" Margin="0,0,0,4" FontSize="10.5">
                         <ComboBoxItem>0</ComboBoxItem>
                         <ComboBoxItem>1</ComboBoxItem>
                         <ComboBoxItem>2</ComboBoxItem>
