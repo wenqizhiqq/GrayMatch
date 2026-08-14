@@ -57,4 +57,8 @@ WPF、NCC模板匹配、C++算法、旋转不变匹配、机器视觉、OpenCV�
 ---
 ⚠️ 购买说明
 底层仅依赖开源 OpenCV 基础图像算子，无任何商业SDK、无加密、无阉割、无授权限制，个人/公司项目均可商用。
-不是网上烂大街调用OpenCV接口的Demo！是真正自研算法工程，懂视觉的工程师一眼就能看出含金量。
+不是网上烂大街调用OpenCV接口的Demo！是真正自研算法工程，懂视觉的工程师一眼就能看出含金量。 
+调试图片：
+<img width="1339" height="1038" alt="旋转数字" src="https://github.com/user-attachments/assets/ce4d4047-4d52-40f5-a820-43c625e7b4b6" />
+
+<img width="2848" height="1600" alt="芯片队列" src="https://github.com/user-attachments/assets/b3bc3136-d077-4039-a1ed-40fea856a605" />
