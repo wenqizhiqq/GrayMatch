@@ -20,10 +20,24 @@
       <Compile Include="..\GrayMatch\DefectResult.cs" Link="DefectResult.cs" />
   </ItemGroup>
 
+  <!-- Copy the native matcher DLL, the OpenCV runtime, and the VC++ 2022
+       redistributable (MSVCP140 / VCRUNTIME140 / VCRUNTIME140_1 / CONCRT140 / vcomp140)
+       into the output folder. Without the VC++ runtime DLLs the app fails to load
+       GrayModelNative.dll on machines that don't have Visual Studio / the VC++
+       redistributable installed, surfacing as a misleading "找不到 GrayModelNative.dll".
+       Bundling them makes the deployment self-contained. -->
   <Target Name="CopyNativeDeps" AfterTargets="Build">
+    <PropertyGroup>
+      <_VsRedistRoot Condition="Exists('C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Redist\MSVC')">C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Redist\MSVC</_VsRedistRoot>
+      <_VsRedistRoot Condition="'$(_VsRedistRoot)' == '' AND Exists('C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Redist\MSVC')">C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Redist\MSVC</_VsRedistRoot>
+      <_VsRedistRoot Condition="'$(_VsRedistRoot)' == '' AND Exists('C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Redist\MSVC')">C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Redist\MSVC</_VsRedistRoot>
+      <_VsRedistRoot Condition="'$(_VsRedistRoot)' == '' AND Exists('C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Redist\MSVC')">C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Redist\MSVC</_VsRedistRoot>
+    </PropertyGroup>
     <ItemGroup>
       <NativeDll Include="..\GrayModelNative\build-ninja9\GrayModelNative.dll" />
       <NativeDll Include="..\ext\opencv\opencv\build\x64\vc16\bin\opencv_world480.dll" />
+      <NativeDll Include="$(_VsRedistRoot)\*\x64\Microsoft.VC143.CRT\*.dll" />
+      <NativeDll Include="$(_VsRedistRoot)\*\x64\Microsoft.VC143.OpenMP\vcomp140.dll" />
     </ItemGroup>
     <Copy SourceFiles="@(NativeDll)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="false" Condition="Exists('%(Identity)')" />
   </Target>

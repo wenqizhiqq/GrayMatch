@@ -67,7 +67,27 @@ public class RotatedTemplateMatcher : IDisposable
         if (_sourceGray == null || _template == null)
             throw new InvalidOperationException("Source and template must be set before matching.");
 
-        IntPtr handle = gm_create();
+        IntPtr handle;
+        try
+        {
+            handle = gm_create();
+        }
+        catch (DllNotFoundException ex)
+        {
+            throw new InvalidOperationException(
+                "无法加载 GrayModelNative.dll。请确保以下文件与程序可执行文件(GrayMatch.Wpf.exe)位于同一目录：\n" +
+                "  GrayModelNative.dll\n  opencv_world480.dll\n" +
+                "  vcruntime140.dll、vcruntime140_1.dll、msvcp140.dll、concrt140.dll、vcomp140.dll\n" +
+                "（后几个是 VC++ 2022 运行库；若目标电脑没装 Visual Studio 或 VC++ 可再发行包就会缺失，\n" +
+                " 会导致 GrayModelNative.dll 加载失败。请从开发机的输出目录把整个文件夹一起拷贝。）\n" +
+                "原始错误：" + ex.Message, ex);
+        }
+        catch (BadImageFormatException ex)
+        {
+            throw new InvalidOperationException(
+                "GrayModelNative.dll 加载失败：很可能是 32 位 / 64 位不匹配。本程序需要 64 位 Windows，" +
+                "且 GrayModelNative.dll 为 x64 版本，请将程序以 x64 运行。\n原始错误：" + ex.Message, ex);
+        }
         if (handle == IntPtr.Zero)
             throw new InvalidOperationException("Failed to create native matcher.");
 

@@ -14,14 +14,25 @@
     <PackageReference Include="OpenCvSharp4.runtime.win" Version="4.13.0.20260627" />
   </ItemGroup>
 
-  <!-- Copy the native matcher DLL and its OpenCV runtime into the output folder.
-       GrayModelNative must be built first (see GrayModelNative/build_native.ps1). -->
+  <!-- Copy the native matcher DLL, the OpenCV runtime, and the VC++ 2022
+       redistributable (MSVCP140 / VCRUNTIME140 / VCRUNTIME140_1 / CONCRT140 / vcomp140)
+       into the output folder so the app is self-contained on machines without
+       Visual Studio / the VC++ redistributable installed. Uses build-ninja9 (the
+       DLL with the denseMode parameter, matching the C# gm_match signature). -->
   <Target Name="CopyNativeDeps" AfterTargets="Build">
+    <PropertyGroup>
+      <_VsRedistRoot Condition="Exists('C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Redist\MSVC')">C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Redist\MSVC</_VsRedistRoot>
+      <_VsRedistRoot Condition="'$(_VsRedistRoot)' == '' AND Exists('C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Redist\MSVC')">C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Redist\MSVC</_VsRedistRoot>
+      <_VsRedistRoot Condition="'$(_VsRedistRoot)' == '' AND Exists('C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Redist\MSVC')">C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Redist\MSVC</_VsRedistRoot>
+      <_VsRedistRoot Condition="'$(_VsRedistRoot)' == '' AND Exists('C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Redist\MSVC')">C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Redist\MSVC</_VsRedistRoot>
+    </PropertyGroup>
     <ItemGroup>
-      <NativeDll Include="..\GrayModelNative\build-ninja7\GrayModelNative.dll" />
+      <NativeDll Include="..\GrayModelNative\build-ninja9\GrayModelNative.dll" />
       <NativeDll Include="..\ext\opencv\opencv\build\x64\vc16\bin\opencv_world480.dll" />
+      <NativeDll Include="$(_VsRedistRoot)\*\x64\Microsoft.VC143.CRT\*.dll" />
+      <NativeDll Include="$(_VsRedistRoot)\*\x64\Microsoft.VC143.OpenMP\vcomp140.dll" />
     </ItemGroup>
-    <Copy SourceFiles="@(NativeDll)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" Condition="Exists('%(Identity)')" />
+    <Copy SourceFiles="@(NativeDll)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="false" Condition="Exists('%(Identity)')" />
   </Target>
 
 </Project>
