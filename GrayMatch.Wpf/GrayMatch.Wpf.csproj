@@ -20,6 +20,16 @@
       <Compile Include="..\GrayMatch\DefectResult.cs" Link="DefectResult.cs" />
   </ItemGroup>
 
+  <!-- Build the native matcher from this solution so F5 in VS compiles it first.
+       Guarded so plain `dotnet build` (no VC toolset) skips it and just copies the
+       already-built DLL; the full VS MSBuild (which defines VCTargetsPath) builds it. -->
+  <ItemGroup>
+    <ProjectReference Include="..\GrayModelNative\GrayModelNative.vcxproj"
+                      ReferenceOutputAssembly="false"
+                      UndefineProperties="Platform"
+                      Condition="Exists('$(VCTargetsPath)')" />
+  </ItemGroup>
+
   <!-- Copy the native matcher DLL, the OpenCV runtime, and the VC++ 2022
        redistributable (MSVCP140 / VCRUNTIME140 / VCRUNTIME140_1 / CONCRT140 / vcomp140)
        into the output folder. Without the VC++ runtime DLLs the app fails to load

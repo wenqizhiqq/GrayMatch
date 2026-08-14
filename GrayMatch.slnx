@@ -1,3 +1,4 @@
 <Solution>
   <Project Path="GrayMatch.Wpf/GrayMatch.Wpf.csproj" />
+  <Project Path="GrayModelNative/GrayModelNative.vcxproj" Id="a1f2c3d4-1234-5678-9abc-def012345678" />
 </Solution>
