@@ -230,6 +230,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             StatusText = $"已载入：{Path.GetFileName(path)}";
         }
         catch (OperationCanceledException) { /* 被新选择取消，安静退出 */ }
+        catch (Exception ex)
+        {
+            StatusText = $"载入失败：{ex.Message}";
+        }
         finally
         {
             _loadSem.Release();

@@ -1,4 +1,5 @@
 using OpenCvSharp;
+using System.IO;
 using System.Runtime.InteropServices;
 
 namespace GrayMatch;
@@ -19,8 +20,16 @@ public class RotatedTemplateMatcher : IDisposable
 
     public void LoadSource(string path)
     {
+        if (string.IsNullOrWhiteSpace(path))
+            throw new ArgumentException("图片路径为空或空白。", nameof(path));
+        if (!File.Exists(path))
+            throw new FileNotFoundException($"找不到图片文件：{path}", path);
+
         DisposeSource();
         _source = Cv2.ImRead(path, ImreadModes.Color);
+        if (_source == null || _source.Empty())
+            throw new InvalidOperationException($"无法读取图片：{path}。文件可能已损坏、被占用，或格式不受 OpenCV 支持。");
+
         _sourceGray = new Mat();
         Cv2.CvtColor(_source, _sourceGray, ColorConversionCodes.BGR2GRAY);
     }
