@@ -54,11 +54,7 @@
                     <TextBlock Text="6. 点「清除结果」可清掉绿框重新开始（原图和模板还在）" Style="{StaticResource CompactText}"/>
 
                     <Separator Margin="0,8,0,4"/>
-                    <TextBlock Text="操作" FontWeight="Bold" FontSize="12" Margin="0,1,0,4"/>
-                    <TextBlock Text="图片列表（点一张即载入，不自动匹配）" Style="{StaticResource CompactText}"/>
-                    <ListBox x:Name="LstImages" Height="92" Margin="0,2,0,6"
-                             SelectionChanged="LstImages_SelectionChanged"
-                             ToolTip="打开文件夹后会列出里面的图片，点一张就载入到右侧画布（只载入显示，不会自动跑匹配；要匹配请点「开始查找」）"/>
+                    <TextBlock Text="操作" FontWeight="Bold" FontSize="12" Margin="0,1,0,4"/> 
                     <Button x:Name="BtnOpen" Content="打开文件夹" Style="{StaticResource CompactButton}"
                   ToolTip="点这里选一个放图片的文件夹（bmp / jpg / png 都支持），选好后用上面的列表切换图片"/>
                     <Button x:Name="BtnCreateTemplate" Content="创建模板" Style="{StaticResource CompactButton}"
@@ -76,7 +72,7 @@
                     <TextBox x:Name="TbAngleStep" Text="1" Margin="0,0,0,4" FontSize="10.5"/>
 
                     <TextBlock Text="NCC相似度阈值 0~1，越高越严格，匹配数量越少" Style="{StaticResource ParamLabel}"/>
-                    <TextBox x:Name="TbThreshold" Text="0.9" Margin="0,0,0,4" FontSize="10.5"/>
+                    <TextBox x:Name="TbThreshold" Text="0.5" Margin="0,0,0,4" FontSize="10.5"/>
 
                     <TextBlock Text="最大允许重叠0-1 过滤重复匹配，越大越宽松" Style="{StaticResource ParamLabel}"/>
                     <TextBox x:Name="TbOverlap" Text="0.1" Margin="0,0,0,4" FontSize="10.5"/>
@@ -154,6 +150,10 @@
                         </StackPanel>
                     </Border>
 
+                    <TextBlock Text="图片列表（点一张即载入，不自动匹配）" Style="{StaticResource CompactText}"/>
+                    <ListBox x:Name="LstImages" Height="92" Margin="0,2,0,6"
+                             SelectionChanged="LstImages_SelectionChanged"
+                             ToolTip="打开文件夹后会列出里面的图片，点一张就载入到右侧画布（只载入显示，不会自动跑匹配；要匹配请点「开始查找」）"/>
                     <Button x:Name="BtnMatch" Content="开始查找" Style="{StaticResource CompactButton}"
                   ToolTip="设置好上面的参数后，点这里在整张图片里找出所有相同的目标，并用绿框标出"/>
                     <Button x:Name="BtnClear" Content="清除结果" Style="{StaticResource CompactButton}"
