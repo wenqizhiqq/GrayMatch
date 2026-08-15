@@ -3,7 +3,7 @@ using System.Windows;
 namespace GrayMatch.Wpf;
 
 /// <summary>
-/// Wires the "´¿ C++ ÊÖÐ´ SIMD / »ý·ÖÍ¼ / FFT ¼ÓËÙ" checkbox to the native fast path.
+/// Wires the "çº¯ C++ æ‰‹å†™ SIMD / ç§¯åˆ†å›¾ / FFT åŠ é€Ÿ" checkbox to the native fast path.
 /// Kept in its own partial so the (sandboxed / binary-flagged) MainWindow.xaml.cs is
 /// never touched. <see cref="_matcher"/> is the same readonly field declared there.
 /// </summary>

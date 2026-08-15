@@ -24,17 +24,17 @@ namespace GrayMatch.Wpf;
 /// layout transform, so the ROI rectangle and the result/defect overlays all stay glued to the pixels.
 ///
 /// Controls:
-///   - Mouse wheel        ¡ú zoom in/out about the cursor
-///   - Middle button drag ¡ú pan
-///   - Double click       ¡ú reset / fit-to-view
-///   - New image / resize ¡ú auto fit (until the user has manually transformed)
+///   - Mouse wheel        â†’ zoom in/out about the cursor
+///   - Middle button drag â†’ pan
+///   - Double click       â†’ reset / fit-to-view
+///   - New image / resize â†’ auto fit (until the user has manually transformed)
 /// </summary>
 public partial class MainWindow
 {
     private bool _isPanning;
     private Point _panStart;          // cursor position at pan start (in ScrollViewer space)
     private Point _scrollStart;       // scroll offsets at pan start
-    private bool _manualTransform;    // user has zoomed/panned ¡ú stop auto-fitting
+    private bool _manualTransform;    // user has zoomed/panned â†’ stop auto-fitting
     private bool _initialFitPending = true;
     private bool _isFitting;          // re-entrancy guard for FitToView
     private int _fitCount;
@@ -162,7 +162,7 @@ public partial class MainWindow
         if (!_isPanning) return;
         var sv = (ScrollViewer)sender;
         Point p = e.GetPosition(sv);
-        // Dragging right moves content right ¡ú scroll offset decreases.
+        // Dragging right moves content right â†’ scroll offset decreases.
         sv.ScrollToHorizontalOffset(_scrollStart.X - (p.X - _panStart.X));
         sv.ScrollToVerticalOffset(_scrollStart.Y - (p.Y - _panStart.Y));
         e.Handled = true;
@@ -209,7 +209,7 @@ public partial class MainWindow
             ImageViewport.ScrollToVerticalOffset(0);
 
             _fitCount++;
-            StatusText = $"ÊÊÅä#{_fitCount} Ëõ·Å={scale:F3} Ô´={srcW:F0}x{srcH:F0} ÊÓ¿Ú={vpW:F0}x{vpH:F0}";
+            StatusText = $"é€‚é…#{_fitCount} ç¼©æ”¾={scale:F3} æº={srcW:F0}x{srcH:F0} è§†å£={vpW:F0}x{vpH:F0}";
         }
         finally
         {

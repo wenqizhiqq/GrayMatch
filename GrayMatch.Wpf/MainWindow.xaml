@@ -46,7 +46,7 @@
             <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="4">
                 <StackPanel Margin="0,2">
                     <TextBlock Text="使用说明" FontWeight="Bold" FontSize="12" Margin="0,1,0,4"/>
-                    <TextBlock Text="1. 点「打开图片」选一张要检测的照片" Style="{StaticResource CompactText}"/>
+                    <TextBlock Text="1. 点「打开文件夹」选一个放图片的文件夹" Style="{StaticResource CompactText}"/>
                     <TextBlock Text="2. 点「创建模板」，进入画框模式" Style="{StaticResource CompactText}"/>
                     <TextBlock Text="3. 在照片上按住鼠标拖一个框，框住你想找的目标（松手即存为模板）" Style="{StaticResource CompactText}"/>
                     <TextBlock Text="4. 根据需要调整下面的角度范围、相似度等参数" Style="{StaticResource CompactText}"/>
@@ -55,8 +55,12 @@
 
                     <Separator Margin="0,8,0,4"/>
                     <TextBlock Text="操作" FontWeight="Bold" FontSize="12" Margin="0,1,0,4"/>
-                    <Button x:Name="BtnOpen" Content="打开图片" Style="{StaticResource CompactButton}"
-                  ToolTip="点这里选一张要检测的图片（bmp / jpg / png 都支持）"/>
+                    <TextBlock Text="图片列表（点一张即载入，不自动匹配）" Style="{StaticResource CompactText}"/>
+                    <ListBox x:Name="LstImages" Height="92" Margin="0,2,0,6"
+                             SelectionChanged="LstImages_SelectionChanged"
+                             ToolTip="打开文件夹后会列出里面的图片，点一张就载入到右侧画布（只载入显示，不会自动跑匹配；要匹配请点「开始查找」）"/>
+                    <Button x:Name="BtnOpen" Content="打开文件夹" Style="{StaticResource CompactButton}"
+                  ToolTip="点这里选一个放图片的文件夹（bmp / jpg / png 都支持），选好后用上面的列表切换图片"/>
                     <Button x:Name="BtnCreateTemplate" Content="创建模板" Style="{StaticResource CompactButton}"
                   ToolTip="点这个按钮进入画框模式，然后在图片上拖一个框选中要找的目标（松手即存为模板）"/>
                     <Separator Margin="0,8,0,4"/>
@@ -78,10 +82,10 @@
                     <TextBox x:Name="TbOverlap" Text="0.1" Margin="0,0,0,4" FontSize="10.5"/>
 
                     <TextBlock Text="最多输出匹配结果数量，超过了就不匹配" Style="{StaticResource ParamLabel}"/>
-                    <TextBox x:Name="TbTopN" Text="640" Margin="0,0,0,4" FontSize="10.5"/>
+                    <TextBox x:Name="TbTopN" Text="200" Margin="0,0,0,4" FontSize="10.5"/>
 
                     <TextBlock Text="金字塔层级 层级越高速度越快越容易漏检" Style="{StaticResource ParamLabel}"/>
-                    <ComboBox x:Name="CmbPyramid" SelectedIndex="0" IsReadOnly="True" Margin="0,0,0,4" FontSize="10.5">
+                    <ComboBox x:Name="CmbPyramid" SelectedIndex="3" IsReadOnly="True" Margin="0,0,0,4" FontSize="10.5">
                         <ComboBoxItem>0</ComboBoxItem>
                         <ComboBoxItem>1</ComboBoxItem>
                         <ComboBoxItem>2</ComboBoxItem>
@@ -91,7 +95,7 @@
                         <ComboBoxItem>6</ComboBoxItem>
                     </ComboBox>
 
-                    <CheckBox x:Name="ChkDense" Content="密集模式（适合规则阵列）" Margin="0,6,0,2" FontSize="11" IsChecked="True"
+                    <CheckBox x:Name="ChkDense" Content="密集模式（适合规则阵列）" Margin="0,6,0,2" FontSize="11" IsChecked="False"
                       ToolTip="默认不勾选（快速）：种子上限 24，稀疏/普通图几毫秒（实测 ±45°≈5ms），但规则阵列里的大部分重复目标会被漏检，只保留少量代表。&#10;勾选（规则阵列）：粗扫不限制种子数量，可把焊球阵列等成百上千个相同目标全部检出；代价是密集图上耗时会升到十几毫秒（实测 ±45°≈15ms、全 360°≈38ms）。"/>
                     <TextBlock Text="默认不勾选=快速; 规则阵列/密集图才勾选=全检出(较慢)" Style="{StaticResource CompactText}" Foreground="Gray" Margin="0,0,0,2"/>
 
@@ -165,6 +169,10 @@
                     <TextBlock Text="{Binding ImageSizeText}" Margin="0,0,0,4" FontWeight="SemiBold" FontSize="10.5"/>
                     <TextBlock Text="模板分辨率" Style="{StaticResource ParamLabel}"/>
                     <TextBlock Text="{Binding TemplateSizeText}" Margin="0,0,0,4" FontWeight="SemiBold" FontSize="10.5"/>
+                    <TextBlock Text="模板预览（创建后显示）" Style="{StaticResource ParamLabel}"/>
+                    <Border BorderBrush="Gray" BorderThickness="1" Height="92" Margin="0,0,0,4" Background="White">
+                        <Image Source="{Binding TemplateBitmap}" Stretch="Uniform" Margin="2"/>
+                    </Border>
                     <TextBlock Text="匹配耗时" Style="{StaticResource ParamLabel}"/>
                     <TextBlock Text="{Binding MatchMsText}" Margin="0,0,0,4" FontWeight="SemiBold" FontSize="10.5"/>
 

@@ -1,14 +1,24 @@
 using Microsoft.Win32;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.IO;
+using System.Text;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using System.Runtime.InteropServices;
-using System.Text;
+using OpenCvSharp;
+
+// OpenCvSharp Óë System.Windows ¶¼µ¼³ö Window / Point£¬ÕâÀïÓÃ±ğÃûÏûÆçÒå£¬
+// ÈÃ MainWindow : Window ÓëÊó±êÊÂ¼şµÄ Point ¶¼Ö¸Ïò WPF °æ±¾¡£
+using Window = System.Windows.Window;
+using Point = System.Windows.Point;
 
 namespace GrayMatch.Wpf;
 
@@ -16,12 +26,21 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 {
     private readonly RotatedTemplateMatcher _matcher = new();
     private CancellationTokenSource? _matchCts;
+    private CancellationTokenSource? _selCts;
+    private readonly SemaphoreSlim _loadSem = new(1, 1);
 
     private bool _isDrawingRoi;
     private Point _roiStart;
     private int _templateW;
     private int _templateH;
     private bool _defectEnabled;
+    private bool _paintedRed;
+
+    private List<string> _imageFiles = new();
+    private string? _lastFolder;
+
+    // original color source, kept so defect pixels can be repainted red without re-decoding the file
+    private Mat? _sourceColor;
 
     public MainWindow()
     {
@@ -30,7 +49,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         WireEvents();
         LoadComputerConfig();
         UpdateInfluenceFactors();
-        StatusText = "å·²ç»å‡†å¤‡å¥½äº†ï¼Œå¯ä»¥å¼€å§‹";
+        StatusText = "ÒÑ¾­×¼±¸ºÃÁË£¬¿ÉÒÔ¿ªÊ¼";
+        _ = LoadPersistedStateAsync();
     }
 
     #region Bindable properties
@@ -53,11 +73,11 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private BitmapSource? _sourceBitmap;
     public BitmapSource? SourceBitmap { get => _sourceBitmap; set => Set(ref _sourceBitmap, value); }
 
-    // original color source, kept so defect pixels can be repainted red without re-decoding the file
-    private OpenCvSharp.Mat? _sourceColor;
+    private BitmapSource? _templateBitmap;
+    public BitmapSource? TemplateBitmap { get => _templateBitmap; set => Set(ref _templateBitmap, value); }
 
-    public ObservableCollection<MatchResult> Results { get; } = new();
-    public ObservableCollection<DefectResult> Defects { get; } = new();
+    public BulkObservableCollection<MatchResult> Results { get; } = new();
+    public BulkObservableCollection<DefectResult> Defects { get; } = new();
 
     private double _roiLeft;
     public double RoiLeft { get => _roiLeft; set => Set(ref _roiLeft, value); }
@@ -74,33 +94,34 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private string _statusText = "";
     public string StatusText { get => _statusText; set => Set(ref _statusText, value); }
 
-    private string _imageSizeText = "\u2014";
+    private string _imageSizeText = "¡ª";
     public string ImageSizeText { get => _imageSizeText; set => Set(ref _imageSizeText, value); }
 
-    private string _templateSizeText = "\u2014";
+    private string _templateSizeText = "¡ª";
     public string TemplateSizeText { get => _templateSizeText; set => Set(ref _templateSizeText, value); }
 
-    private string _matchMsText = "\u2014";
+    private string _matchMsText = "¡ª";
     public string MatchMsText { get => _matchMsText; set => Set(ref _matchMsText, value); }
 
     private string _defectSummaryText = "-";
     public string DefectSummaryText { get => _defectSummaryText; set => Set(ref _defectSummaryText, value); }
 
-    private string _computerConfigText = "\u2014";
+    private string _computerConfigText = "¡ª";
     public string ComputerConfigText { get => _computerConfigText; set => Set(ref _computerConfigText, value); }
 
-    private string _influenceFactorsText = "\u2014";
+    private string _influenceFactorsText = "¡ª";
     public string InfluenceFactorsText { get => _influenceFactorsText; set => Set(ref _influenceFactorsText, value); }
 
     #endregion
 
+    #region Event wiring
+
     private void WireEvents()
     {
-        BtnOpen.Click += async (_, _) => await OpenImageAsync();
+        BtnOpen.Click += async (_, _) => await OpenFolderAsync();
         BtnCreateTemplate.Click += (_, _) => StartCreateTemplate();
         BtnMatch.Click += async (_, _) => await RunMatchAsync();
         BtnClear.Click += (_, _) => ClearResults();
-        // å¯†é›†æ¨¡å¼ç”± ChkDense å‹¾é€‰æ¡†æ§åˆ¶ï¼ˆé»˜è®¤ä¸å‹¾é€‰=å¿«é€Ÿï¼›é‡åˆ°è§„åˆ™é˜µåˆ—å†å‹¾é€‰åšå…¨æ£€å‡ºï¼‰
 
         TbAngleStart.TextChanged += (_, _) => UpdateInfluenceFactors();
         TbAngleEnd.TextChanged += (_, _) => UpdateInfluenceFactors();
@@ -113,225 +134,124 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         ChkDefect.Unchecked += ChkDefect_Changed;
     }
 
-    private async Task OpenImageAsync()
+    #endregion
+
+    #region Open folder / image loading
+
+    private async Task OpenFolderAsync(string? presetFolder = null)
     {
-        var dlg = new OpenFileDialog
+        string? folder = presetFolder;
+        if (string.IsNullOrWhiteSpace(folder))
         {
-            Filter = "å›¾åƒæ–‡ä»¶|*.bmp;*.png;*.jpg;*.jpeg;*.tif;*.tiff|æ‰€æœ‰æ–‡ä»¶|*.*"
-        };
-        if (dlg.ShowDialog() != true) return;
+            var dlg = new OpenFolderDialog();
+            if (dlg.ShowDialog() != true) return;
+            folder = dlg.FolderName;
+        }
+        if (!Directory.Exists(folder)) return;
 
-        await Task.Run(() => _matcher.LoadSource(dlg.FileName));
+        _lastFolder = folder;
+        SaveLastFolder();
 
-        var mat = _matcher.Source;
-        _sourceColor = mat.Clone();
-        RefreshDisplayBitmap();
-        ImageWidth = mat.Width;
-        ImageHeight = mat.Height;
-        ImageSizeText = $"{mat.Width} \u00d7 {mat.Height}";
-        TemplateSizeText = "\u2014";
-        MatchMsText = "\u2014";
-        _templateW = 0;
-        _templateH = 0;
-        Results.Clear();
-        Defects.Clear();
-        DefectSummaryText = "-";
-        ClearRoi();
-        UpdateInfluenceFactors();
-        StatusText = $"å›¾ç‰‡å·²è¯»å…¥ï¼š{dlg.FileName}";
+        var exts = new HashSet<string> { ".bmp", ".png", ".jpg", ".jpeg", ".tif", ".tiff", ".gif" };
+        _imageFiles = Directory.GetFiles(folder, "*.*")
+            .Where(f => exts.Contains(Path.GetExtension(f).ToLowerInvariant()))
+            .OrderBy(f => f, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        LstImages.ItemsSource = _imageFiles.ConvertAll(Path.GetFileName);
+        if (_imageFiles.Count > 0)
+        {
+            LstImages.SelectedIndex = 0; // triggers SelectionChanged -> load only (no auto-match)
+            StatusText = $"ÒÑ´ò¿ªÎÄ¼ş¼Ğ£º{folder}£¨¹² {_imageFiles.Count} ÕÅÍ¼Æ¬£¬ÇĞ»»¼´ÔØÈë£¬²»×Ô¶¯Æ¥Åä£©";
+        }
+        else
+        {
+            LstImages.ItemsSource = null;
+            StatusText = "¸ÃÎÄ¼ş¼ĞÀïÃ»ÓĞÍ¼Æ¬";
+        }
     }
+
+    // ÇĞÍ¼Ö»ÔØÈë+ÏÔÊ¾£¬¾ø²»×Ô¶¯Æ¥Åä ¡ª¡ª Õâ¾ÍÊÇ¡¸ÇĞÍ¼ÓëÄ£°å½âñî¡¹µÄ¹Ø¼ü¡£
+    private async void LstImages_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        await DebouncedSelectAsync();
+    }
+
+    private async Task DebouncedSelectAsync()
+    {
+        int idx = LstImages.SelectedIndex;
+        if (idx < 0 || idx >= _imageFiles.Count) return;
+        string path = _imageFiles[idx];
+
+        _selCts?.Cancel();
+        _selCts = new CancellationTokenSource();
+        var token = _selCts.Token;
+        try { await Task.Delay(150, token); }   // ·À¶¶£º¿ìËÙµãÑ¡Ö»ÈÏ×îºóÒ»´Î
+        catch (OperationCanceledException) { return; }
+
+        await LoadSourceFromPathAsync(path, token);
+        // ×¢Òâ£ºÕâÀï¹ÊÒâ²»µ÷ÓÃ RunMatchAsync¡£Æ¥ÅäÇëÓÃ×ó²à¡¸¿ªÊ¼²éÕÒ¡¹¡£
+    }
+
+    private async Task LoadSourceFromPathAsync(string path, CancellationToken token)
+    {
+        await _loadSem.WaitAsync(token);
+        try
+        {
+            token.ThrowIfCancellationRequested();
+            await Task.Run(() => _matcher.LoadSource(path), token);
+            var mat = _matcher.Source;
+            _sourceColor = mat.Clone();
+            RefreshDisplayBitmap();
+            ImageWidth = mat.Width;
+            ImageHeight = mat.Height;
+            ImageSizeText = $"{mat.Width} ¡Á {mat.Height}";
+
+            if (_matcher.Template != null)
+            {
+                var t = _matcher.Template;
+                TemplateSizeText = $"{t.Width} ¡Á {t.Height}";
+                _templateW = t.Width;
+                _templateH = t.Height;
+            }
+            else
+            {
+                TemplateSizeText = "¡ª";
+                _templateW = 0;
+                _templateH = 0;
+            }
+
+            Results.Clear();
+            Defects.Clear();
+            DefectSummaryText = "-";
+            MatchMsText = "¡ª";
+            ClearRoi();
+            UpdateInfluenceFactors();
+            StatusText = $"ÒÑÔØÈë£º{Path.GetFileName(path)}";
+        }
+        catch (OperationCanceledException) { /* ±»ĞÂÑ¡ÔñÈ¡Ïû£¬°²¾²ÍË³ö */ }
+        finally
+        {
+            _loadSem.Release();
+        }
+    }
+
+    #endregion
+
+    #region Template creation
 
     private void StartCreateTemplate()
     {
         if (SourceBitmap == null)
         {
-            MessageBox.Show("è¯·å…ˆæ‰“å¼€å›¾åƒã€‚", "æç¤º", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show("ÇëÏÈ´ò¿ªÍ¼Ïñ¡£", "ÌáÊ¾", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
         _isDrawingRoi = true;
-        StatusText = "åœ¨å›¾ç‰‡ä¸ŠæŒ‰ä½é¼ æ ‡æ‹–ä¸€ä¸ªæ¡†ï¼Œæ¡†ä½è¦æ‰¾çš„ç›®æ ‡ï¼ˆæ¾æ‰‹å³æˆä¸ºæ¨¡æ¿ï¼‰";
+        StatusText = "ÔÚÍ¼Æ¬ÉÏ°´×¡Êó±êÍÏÒ»¸ö¿ò£¬¿ò×¡ÒªÕÒµÄÄ¿±ê£¨ËÉÊÖ¼´³ÉÎªÄ£°å£©";
     }
 
-    private async Task RunMatchAsync()
-    {
-        if (_matcher.Template == null)
-        {
-            MessageBox.Show("è¯·å…ˆåˆ›å»ºæ¨¡æ¿ã€‚", "æç¤º", MessageBoxButton.OK, MessageBoxImage.Information);
-            return;
-        }
-
-        BtnMatch.IsEnabled = false;
-        _matchCts?.Cancel();
-        _matchCts = new CancellationTokenSource();
-
-        if (!int.TryParse((CmbPyramid.SelectedItem as ComboBoxItem)?.Content?.ToString(), out int pyramid))
-            pyramid = 4;
-
-        double start = Parse(TbAngleStart.Text, -180);
-        double end = Parse(TbAngleEnd.Text, 180);
-        double step = Parse(TbAngleStep.Text, 1);
-        double threshold = Parse(TbThreshold.Text, 0.5);
-        double overlap = Parse(TbOverlap.Text, 0.25);
-        int topN = (int)Parse(TbTopN.Text, 64);
-
-        StatusText = "æ­£åœ¨æŸ¥æ‰¾ï¼Œè¯·ç¨å€™...";
-
-        List<MatchResult> results;
-        try
-        {
-            // å¯†é›†æ¨¡å¼ç”±å‹¾é€‰æ¡†æ§åˆ¶ï¼šå‹¾é€‰=ç²—æ‰«ä¸é™åˆ¶ç§å­ï¼ˆè§„åˆ™é˜µåˆ—å…¨æ£€å‡ºï¼Œå¯†é›†å›¾è¾ƒæ…¢ï¼‰ï¼›ä¸å‹¾é€‰=ç§å­ä¸Šé™ 24ï¼ˆå¿«ï¼Œä½†é˜µåˆ—æ˜“æ¼æ£€ï¼‰
-            int dense = ChkDense.IsChecked == true ? 1 : 0;
-            results = await Task.Run(() => _matcher.Match(pyramid, start, end, step, threshold, overlap, topN, dense), _matchCts.Token);
-        }
-        catch (OperationCanceledException)
-        {
-            StatusText = "å·²å–æ¶ˆæŸ¥æ‰¾";
-            BtnMatch.IsEnabled = true;
-            return;
-        }
-        catch (Exception ex)
-        {
-            MessageBox.Show($"åŒ¹é…å¤±è´¥: {ex.Message}", "é”™è¯¯", MessageBoxButton.OK, MessageBoxImage.Error);
-            StatusText = "æŸ¥æ‰¾å¤±è´¥äº†";
-            BtnMatch.IsEnabled = true;
-            return;
-        }
-
-        // Report ONLY the native matching time (excludes template cache construction
-        // and WPF box drawing, which the native layer already separates out).
-        Results.Clear();
-        foreach (var r in results) Results.Add(r);
-
-        Defects.Clear();
-        if (_defectEnabled)
-        {
-            var defects = await Task.Run(() => _matcher.DetectDefects(results), _matchCts.Token);
-            foreach (var d in defects) Defects.Add(d);
-            DefectSummaryText = BuildDefectSummary(defects);
-            // paint defective pixels red directly on the image (no overlay box)
-            RefreshDisplayBitmap(defects);
-            StatusText = $"æŸ¥æ‰¾å®Œæˆï¼šå…±æ‰¾åˆ° {results.Count} ä¸ªç›®æ ‡ï¼Œå…¶ä¸­ {defects.Count} å¤„æœ‰ç¼ºé™·ï¼Œç”¨æ—¶ {_matcher.LastMatchMs:F1} æ¯«ç§’";
-        }
-        else
-        {
-            DefectSummaryText = "-";
-            RefreshDisplayBitmap(); // clear any previously painted red
-            StatusText = $"æŸ¥æ‰¾å®Œæˆï¼šå…±æ‰¾åˆ° {results.Count} ä¸ªç›®æ ‡ï¼Œç”¨æ—¶ {_matcher.LastMatchMs:F1} æ¯«ç§’";
-        }
-        MatchMsText = $"{_matcher.LastMatchMs:F1} ms";
-        BtnMatch.IsEnabled = true;
-    }
-
-    private void ClearResults()
-    {
-        _matchCts?.Cancel();
-        Results.Clear();
-        Defects.Clear();
-        DefectSummaryText = "-";
-        RefreshDisplayBitmap(); // remove any painted red from a previous run
-        ClearRoi();
-        StatusText = "ç»“æœå·²æ¸…ç©ºï¼Œç»¿æ¡†å·²å»æ‰";
-    }
-
-
-    private void ClearRoi()
-    {
-        RoiLeft = 0; RoiTop = 0; RoiWidth = 0; RoiHeight = 0;
-    }
-
-    private void ChkDefect_Changed(object sender, RoutedEventArgs e)
-    {
-        _defectEnabled = ChkDefect.IsChecked == true;
-        DefectSummaryText = "-";
-        StatusText = _defectEnabled ? "å·²å¼€å¯ç¼ºé™·æ£€æŸ¥" : "å·²å…³é—­ç¼ºé™·æ£€æŸ¥";
-    }
-
-    private static string BuildDefectSummary(System.Collections.Generic.List<DefectResult> defects)
-    {
-        if (defects == null || defects.Count == 0) return "æœªå‘ç°ç¼ºé™·";
-        var counts = new System.Collections.Generic.Dictionary<string, int>();
-        foreach (var d in defects)
-        {
-            counts.TryGetValue(d.Type, out int n);
-            counts[d.Type] = n + 1;
-        }
-        var parts = new System.Collections.Generic.List<string>();
-        foreach (var kv in counts) parts.Add(kv.Key + ": " + kv.Value);
-        return "ç¼ºé™· " + defects.Count + " å¤„ (" + string.Join(", ", parts) + ")";
-    }
-
-    private static double Parse(string text, double fallback)
-    {
-        return double.TryParse(text, System.Globalization.NumberStyles.Any,
-            System.Globalization.CultureInfo.InvariantCulture, out double v) ? v : fallback;
-    }
-
-    /// <summary>
-    /// (Re)builds the displayed bitmap from the original color source and, when <paramref name="defects"/>
-    /// is given, paints each defective pixel red directly on the image (no overlay box).
-    /// </summary>
-    private void RefreshDisplayBitmap(System.Collections.Generic.IReadOnlyList<DefectResult>? defects = null)
-    {
-        if (_sourceColor == null) return;
-        int w = _sourceColor.Width, h = _sourceColor.Height;
-        int ch = _sourceColor.Channels();
-        if (ch < 3) return; // defect painting only makes sense on a color image
-
-        int srcStride = (int)_sourceColor.Step();
-        var wb = new System.Windows.Media.Imaging.WriteableBitmap(w, h, 96, 96,
-            System.Windows.Media.PixelFormats.Bgr24, null);
-        wb.Lock();
-        IntPtr back = wb.BackBuffer;
-        int dstStride = wb.BackBufferStride;
-
-        // copy the whole color image into the back buffer, row by row (handles any row padding)
-        var row = new byte[w * 3];
-        for (int y = 0; y < h; y++)
-        {
-            System.Runtime.InteropServices.Marshal.Copy(_sourceColor.Data + y * srcStride, row, 0, w * 3);
-            System.Runtime.InteropServices.Marshal.Copy(row, 0, back + y * dstStride, w * 3);
-        }
-
-        // paint defective pixels red
-        if (defects != null && defects.Count > 0)
-        {
-            var px = new byte[dstStride * h];
-            System.Runtime.InteropServices.Marshal.Copy(back, px, 0, px.Length);
-            foreach (var d in defects)
-            {
-                if (d.Pixels == null || d.Pw <= 0 || d.Ph <= 0) continue;
-                double phi = -d.Angle * System.Math.PI / 180.0;
-                double cosv = System.Math.Cos(phi), sinv = System.Math.Sin(phi);
-                double tw = d.Tw, th = d.Th;
-                for (int ly = 0; ly < d.Ph; ly++)
-                {
-                    int baseOff = ly * d.Pw;
-                    for (int lx = 0; lx < d.Pw; lx++)
-                    {
-                        if (d.Pixels[baseOff + lx] == 0) continue;
-                        double ux = lx - tw / 2.0;
-                        double uy = ly - th / 2.0;
-                        int ix = (int)System.Math.Round(d.CenterX + (ux * cosv - uy * sinv));
-                        int iy = (int)System.Math.Round(d.CenterY + (ux * sinv + uy * cosv));
-                        if (ix < 0 || iy < 0 || ix >= w || iy >= h) continue;
-                        int idx = iy * dstStride + ix * 3;
-                        px[idx] = 0;       // B
-                        px[idx + 1] = 0;   // G
-                        px[idx + 2] = 255; // R
-                    }
-                }
-            }
-            System.Runtime.InteropServices.Marshal.Copy(px, 0, back, px.Length);
-        }
-
-        wb.AddDirtyRect(new System.Windows.Int32Rect(0, 0, w, h));
-        wb.Unlock();
-        SourceBitmap = wb;
-    }
-
-    #region Canvas / mouse interaction
-
-    private void ImageGrid_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    private async void ImageGrid_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         if (!_isDrawingRoi || SourceBitmap == null) return;
         _roiStart = e.GetPosition(ImageGrid);
@@ -368,16 +288,259 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         if (w < 8 || h < 8)
         {
             ClearRoi();
-            StatusText = "æ¡†é€‰çš„æ¨¡æ¿å¤ªå°äº†ï¼Œè¯·æ¡†å¤§ä¸€ç‚¹";
+            StatusText = "¿òÑ¡µÄÄ£°åÌ«Ğ¡ÁË£¬Çë¿ò´óÒ»µã";
             return;
         }
 
         _matcher.SetTemplateFromRoi(new OpenCvSharp.Rect(x, y, w, h));
-        StatusText = $"æ¨¡æ¿å·²åšå¥½ï¼Œå¤§å° {w}Ã—{h}";
-        TemplateSizeText = $"{_matcher.Template.Width} \u00d7 {_matcher.Template.Height}";
-        _templateW = _matcher.Template.Width;
-        _templateH = _matcher.Template.Height;
+        var tpl = _matcher.Template!;
+        TemplateSizeText = $"{tpl.Width} ¡Á {tpl.Height}";
+        _templateW = tpl.Width;
+        _templateH = tpl.Height;
+        TemplateBitmap = MatToBitmapSource(tpl);
+        _ = SaveTemplateAsync(tpl);
         UpdateInfluenceFactors();
+        StatusText = $"Ä£°åÒÑ×öºÃ£¬´óĞ¡ {w}¡Á{h}£¨ÏÔÊ¾ÔÚ×ó²à£©¡£µã¡¸¿ªÊ¼²éÕÒ¡¹ÔÚ¸ÃÍ¼ÉÏÕÒÄ¿±ê";
+    }
+
+    #endregion
+
+    #region Matching
+
+    private async Task RunMatchAsync()
+    {
+        if (_matcher.Template == null)
+        {
+            MessageBox.Show("ÇëÏÈ´´½¨Ä£°å¡£", "ÌáÊ¾", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        BtnMatch.IsEnabled = false;
+        _matchCts?.Cancel();
+        _matchCts = new CancellationTokenSource();
+        var token = _matchCts.Token;
+
+        if (!int.TryParse((CmbPyramid.SelectedItem as ComboBoxItem)?.Content?.ToString(), out int pyramid))
+            pyramid = 4;
+
+        double start = Parse(TbAngleStart.Text, -180);
+        double end = Parse(TbAngleEnd.Text, 180);
+        double step = Parse(TbAngleStep.Text, 1);
+        double threshold = Parse(TbThreshold.Text, 0.5);
+        double overlap = Parse(TbOverlap.Text, 0.25);
+        int topN = (int)Parse(TbTopN.Text, 200);
+
+        StatusText = "ÕıÔÚ²éÕÒ£¬ÇëÉÔºò...";
+
+        List<MatchResult> results;
+        try
+        {
+            int dense = ChkDense.IsChecked == true ? 1 : 0;
+            results = await Task.Run(() => _matcher.Match(pyramid, start, end, step, threshold, overlap, topN, dense), token);
+        }
+        catch (OperationCanceledException)
+        {
+            StatusText = "ÒÑÈ¡Ïû²éÕÒ";
+            BtnMatch.IsEnabled = true;
+            return;
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Æ¥ÅäÊ§°Ü: {ex.Message}", "´íÎó", MessageBoxButton.OK, MessageBoxImage.Error);
+            StatusText = "²éÕÒÊ§°ÜÁË";
+            BtnMatch.IsEnabled = true;
+            return;
+        }
+
+        Results.Clear();
+        Results.AddRange(results);
+
+        Defects.Clear();
+        if (_defectEnabled)
+        {
+            var defects = await Task.Run(() => _matcher.DetectDefects(results), token);
+            if (token.IsCancellationRequested) { BtnMatch.IsEnabled = true; return; }
+            Defects.AddRange(defects);
+            DefectSummaryText = BuildDefectSummary(defects);
+            RefreshDisplayBitmap(defects);   // »­ºì
+            _paintedRed = true;
+            StatusText = $"²éÕÒÍê³É£º¹²ÕÒµ½ {results.Count} ¸öÄ¿±ê£¬ÆäÖĞ {defects.Count} ´¦ÓĞÈ±Ïİ£¬ÓÃÊ± {_matcher.LastMatchMs:F1} ºÁÃë";
+        }
+        else
+        {
+            DefectSummaryText = "-";
+            // Ö»ÓĞÉÏÒ»ÂÖ»­¹ıºì¡¢±¾ÂÖÃ»»­£¬²ÅĞèÒªÖØ»æÇåºì£»·ñÔò²»ÖØ»æÕûÕÅÍ¼£¨Ê¡Ò»´Î´ó¿½±´£©
+            if (_paintedRed) { RefreshDisplayBitmap(); _paintedRed = false; }
+            StatusText = $"²éÕÒÍê³É£º¹²ÕÒµ½ {results.Count} ¸öÄ¿±ê£¬ÓÃÊ± {_matcher.LastMatchMs:F1} ºÁÃë";
+        }
+        MatchMsText = $"{_matcher.LastMatchMs:F1} ms";
+        BtnMatch.IsEnabled = true;
+    }
+
+    private void ClearResults()
+    {
+        _matchCts?.Cancel();
+        Results.Clear();
+        Defects.Clear();
+        DefectSummaryText = "-";
+        RefreshDisplayBitmap(); // remove any painted red from a previous run
+        ClearRoi();
+        StatusText = "½á¹ûÒÑÇå¿Õ£¬ÂÌ¿òÒÑÈ¥µô";
+    }
+
+    private void ClearRoi()
+    {
+        RoiLeft = 0; RoiTop = 0; RoiWidth = 0; RoiHeight = 0;
+    }
+
+    private void ChkDefect_Changed(object sender, RoutedEventArgs e)
+    {
+        _defectEnabled = ChkDefect.IsChecked == true;
+        DefectSummaryText = "-";
+        StatusText = _defectEnabled ? "ÒÑ¿ªÆôÈ±Ïİ¼ì²é" : "ÒÑ¹Ø±ÕÈ±Ïİ¼ì²é";
+    }
+
+    private static string BuildDefectSummary(List<DefectResult> defects)
+    {
+        if (defects == null || defects.Count == 0) return "Î´·¢ÏÖÈ±Ïİ";
+        var counts = new Dictionary<string, int>();
+        foreach (var d in defects)
+        {
+            counts.TryGetValue(d.Type, out int n);
+            counts[d.Type] = n + 1;
+        }
+        var parts = new List<string>();
+        foreach (var kv in counts) parts.Add(kv.Key + ": " + kv.Value);
+        return "È±Ïİ " + defects.Count + " ´¦ (" + string.Join(", ", parts) + ")";
+    }
+
+    #endregion
+
+    #region Display bitmap
+
+    private void RefreshDisplayBitmap(IReadOnlyList<DefectResult>? defects = null)
+    {
+        if (_sourceColor == null) return;
+        int w = _sourceColor.Width, h = _sourceColor.Height;
+        int ch = _sourceColor.Channels();
+        if (ch < 3) return;
+
+        int srcStride = (int)_sourceColor.Step();
+        var wb = new WriteableBitmap(w, h, 96, 96, PixelFormats.Bgr24, null);
+        wb.Lock();
+        IntPtr back = wb.BackBuffer;
+        int dstStride = wb.BackBufferStride;
+
+        var row = new byte[w * 3];
+        for (int y = 0; y < h; y++)
+        {
+            Marshal.Copy(_sourceColor.Data + y * srcStride, row, 0, w * 3);
+            Marshal.Copy(row, 0, back + y * dstStride, w * 3);
+        }
+
+        if (defects != null && defects.Count > 0)
+        {
+            var px = new byte[dstStride * h];
+            Marshal.Copy(back, px, 0, px.Length);
+            foreach (var d in defects)
+            {
+                if (d.Pixels == null || d.Pw <= 0 || d.Ph <= 0) continue;
+                double phi = -d.Angle * System.Math.PI / 180.0;
+                double cosv = System.Math.Cos(phi), sinv = System.Math.Sin(phi);
+                double tw = d.Tw, th = d.Th;
+                for (int ly = 0; ly < d.Ph; ly++)
+                {
+                    int baseOff = ly * d.Pw;
+                    for (int lx = 0; lx < d.Pw; lx++)
+                    {
+                        if (d.Pixels[baseOff + lx] == 0) continue;
+                        double ux = lx - tw / 2.0;
+                        double uy = ly - th / 2.0;
+                        int ix = (int)System.Math.Round(d.CenterX + (ux * cosv - uy * sinv));
+                        int iy = (int)System.Math.Round(d.CenterY + (ux * sinv + uy * cosv));
+                        if (ix < 0 || iy < 0 || ix >= w || iy >= h) continue;
+                        int idx = iy * dstStride + ix * 3;
+                        px[idx] = 0; px[idx + 1] = 0; px[idx + 2] = 255;
+                    }
+                }
+            }
+            Marshal.Copy(px, 0, back, px.Length);
+        }
+
+        wb.AddDirtyRect(new Int32Rect(0, 0, w, h));
+        wb.Unlock();
+        SourceBitmap = wb;
+    }
+
+    private static BitmapSource? MatToBitmapSource(Mat m)
+    {
+        if (m == null || m.Empty()) return null;
+        int w = m.Width, h = m.Height;
+        var wb = new WriteableBitmap(w, h, 96, 96, PixelFormats.Gray8, null);
+        wb.Lock();
+        int srcStride = (int)m.Step();
+        var row = new byte[w];
+        for (int y = 0; y < h; y++)
+        {
+            Marshal.Copy(m.Data + y * srcStride, row, 0, w);
+            Marshal.Copy(row, 0, wb.BackBuffer + y * wb.BackBufferStride, w);
+        }
+        wb.AddDirtyRect(new Int32Rect(0, 0, w, h));
+        wb.Unlock();
+        return wb;
+    }
+
+    #endregion
+
+    #region Persistence
+
+    private static readonly string AppDataDir =
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "GrayMatch");
+    private static readonly string LastFolderFile = Path.Combine(AppDataDir, "lastFolder.txt");
+    private static readonly string TemplateFile = Path.Combine(AppDataDir, "template.png");
+
+    private void SaveLastFolder()
+    {
+        try { Directory.CreateDirectory(AppDataDir); File.WriteAllText(LastFolderFile, _lastFolder ?? ""); }
+        catch { /* ignore */ }
+    }
+
+    private async Task SaveTemplateAsync(Mat tpl)
+    {
+        try
+        {
+            Directory.CreateDirectory(AppDataDir);
+            // Ä£°åÊÇ»Ò¶ÈÍ¼£¬Ö±½Ó´æ
+            await Task.Run(() => tpl.SaveImage(TemplateFile));
+        }
+        catch { /* ignore */ }
+    }
+
+    private async Task LoadPersistedStateAsync()
+    {
+        try
+        {
+            if (File.Exists(TemplateFile))
+            {
+                using var t = Cv2.ImRead(TemplateFile, ImreadModes.Grayscale);
+                if (t != null && !t.Empty())
+                {
+                    _matcher.SetTemplate(t);
+                    TemplateBitmap = MatToBitmapSource(t);
+                    TemplateSizeText = $"{t.Width} ¡Á {t.Height}";
+                    _templateW = t.Width;
+                    _templateH = t.Height;
+                    UpdateInfluenceFactors();
+                }
+            }
+            if (File.Exists(LastFolderFile))
+            {
+                var folder = File.ReadAllText(LastFolderFile).Trim();
+                if (Directory.Exists(folder))
+                    await OpenFolderAsync(folder);
+            }
+        }
+        catch { /* ignore */ }
     }
 
     #endregion
@@ -407,10 +570,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         var sb = new StringBuilder();
         try
         {
-            sb.AppendLine("æ“ä½œç³»ç»Ÿ: " + RuntimeInformation.OSDescription.Trim());
-            sb.AppendLine("ç³»ç»Ÿæ¶æ„: " + RuntimeInformation.ProcessArchitecture + (Environment.Is64BitProcess ? " (64ä½è¿›ç¨‹)" : " (32ä½è¿›ç¨‹)"));
-            sb.AppendLine("å¤„ç†å™¨: " + (Environment.GetEnvironmentVariable("PROCESSOR_IDENTIFIER") ?? "æœªçŸ¥"));
-            sb.AppendLine("é€»è¾‘æ ¸å¿ƒæ•°: " + Environment.ProcessorCount);
+            sb.AppendLine("²Ù×÷ÏµÍ³: " + RuntimeInformation.OSDescription.Trim());
+            sb.AppendLine("ÏµÍ³¼Ü¹¹: " + RuntimeInformation.ProcessArchitecture + (Environment.Is64BitProcess ? " (64Î»½ø³Ì)" : " (32Î»½ø³Ì)"));
+            sb.AppendLine("´¦ÀíÆ÷: " + (Environment.GetEnvironmentVariable("PROCESSOR_IDENTIFIER") ?? "Î´Öª"));
+            sb.AppendLine("Âß¼­ºËĞÄÊı: " + Environment.ProcessorCount);
 
             ulong totalPhys = 0;
             try
@@ -420,7 +583,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             }
             catch { }
             if (totalPhys > 0)
-                sb.AppendLine("ç‰©ç†å†…å­˜: " + (totalPhys / 1024.0 / 1024.0 / 1024.0).ToString("F1") + " GB");
+                sb.AppendLine("ÎïÀíÄÚ´æ: " + (totalPhys / 1024.0 / 1024.0 / 1024.0).ToString("F1") + " GB");
 
             string ocv = "4.8.0";
             try
@@ -430,15 +593,21 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             }
             catch { }
             sb.AppendLine("OpenCV: " + ocv + " (OpenCvSharp4 4.8.0)");
-            sb.AppendLine("è¿è¡Œæ¡†æ¶: " + RuntimeInformation.FrameworkDescription);
-            sb.AppendLine("å¹¶è¡Œè®¡ç®—: OpenMP x " + Environment.ProcessorCount + " çº¿ç¨‹");
+            sb.AppendLine("ÔËĞĞ¿ò¼Ü: " + RuntimeInformation.FrameworkDescription);
+            sb.AppendLine("²¢ĞĞ¼ÆËã: OpenMP x " + Environment.ProcessorCount + " Ïß³Ì");
         }
         catch (Exception ex)
         {
             sb.Clear();
-            sb.AppendLine("é…ç½®è¯»å–å¤±è´¥: " + ex.Message);
+            sb.AppendLine("ÅäÖÃ¶ÁÈ¡Ê§°Ü: " + ex.Message);
         }
         ComputerConfigText = sb.ToString().TrimEnd();
+    }
+
+    private static double Parse(string text, double fallback)
+    {
+        return double.TryParse(text, System.Globalization.NumberStyles.Any,
+            System.Globalization.CultureInfo.InvariantCulture, out double v) ? v : fallback;
     }
 
     private void UpdateInfluenceFactors()
@@ -451,18 +620,18 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         if (int.TryParse((CmbPyramid.SelectedItem as ComboBoxItem)?.Content?.ToString(), out int p)) pyramid = p;
 
         int angleCount = (step > 1e-9 && end >= start)
-            ? (int)Math.Floor((end - start) / step) + 1 : 0;
+            ? (int)System.Math.Floor((end - start) / step) + 1 : 0;
 
-        sb.AppendLine("è§’åº¦æ‰«ææ•°: " + angleCount);
-        sb.AppendLine("é‡‘å­—å¡”å±‚çº§: " + pyramid);
-        sb.AppendLine("å›¾åƒå°ºå¯¸: " + (ImageWidth > 1 ? $"{ImageWidth} x {ImageHeight}" : "æœªåŠ è½½"));
-        sb.AppendLine("æ¨¡æ¿å°ºå¯¸: " + (_templateW > 0 ? $"{_templateW} x {_templateH}" : "æœªåˆ›å»º"));
+        sb.AppendLine("½Ç¶ÈÉ¨ÃèÊı: " + angleCount);
+        sb.AppendLine("½ğ×ÖËş²ã¼¶: " + pyramid);
+        sb.AppendLine("Í¼Ïñ³ß´ç: " + (ImageWidth > 1 ? $"{ImageWidth} x {ImageHeight}" : "Î´¼ÓÔØ"));
+        sb.AppendLine("Ä£°å³ß´ç: " + (_templateW > 0 ? $"{_templateW} x {_templateH}" : "Î´´´½¨"));
         sb.AppendLine("");
-        sb.AppendLine("å½±å“é€Ÿåº¦çš„å¯èƒ½å› ç´ :");
-        sb.AppendLine("â€¢ é‡‘å­—å¡”å±‚çº§â†‘ -> è¶Šå¿« (ç²—å±‚å…ˆç­›ç§å­)");
-        sb.AppendLine("â€¢ è§’åº¦èŒƒå›´/æ­¥é•¿â†‘ -> è¶Šå¿«ä½†ç²¾åº¦â†“");
-        sb.AppendLine("â€¢ å›¾åƒ/æ¨¡æ¿è¶Šå¤§ -> è®¡ç®—é‡è¶Šå¤§ã€è¶Šæ…¢");
-        sb.AppendLine("â€¢ æ ¸å¿ƒæ•°â†‘ -> OpenMP å¹¶è¡Œè¶Šå¿«");
+        sb.AppendLine("Ó°ÏìËÙ¶ÈµÄ¿ÉÄÜÒòËØ:");
+        sb.AppendLine("? ½ğ×ÖËş²ã¼¶¡ü -> Ô½¿ì (´Ö²ãÏÈÉ¸ÖÖ×Ó)");
+        sb.AppendLine("? ½Ç¶È·¶Î§/²½³¤¡ü -> Ô½¿ìµ«¾«¶È¡ı");
+        sb.AppendLine("? Í¼Ïñ/Ä£°åÔ½´ó -> ¼ÆËãÁ¿Ô½´ó¡¢Ô½Âı");
+        sb.AppendLine("? ºËĞÄÊı¡ü -> OpenMP ²¢ĞĞÔ½¿ì");
 
         InfluenceFactorsText = sb.ToString().TrimEnd();
     }
@@ -472,6 +641,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     protected override void OnClosing(CancelEventArgs e)
     {
         _matchCts?.Cancel();
+        _selCts?.Cancel();
         _matcher.Dispose();
         base.OnClosing(e);
     }

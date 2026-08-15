@@ -13,7 +13,7 @@ public class RotatedTemplateMatcher : IDisposable
     public Mat Template => _template ?? throw new InvalidOperationException("Template not created.");
 
     /// <summary>Pure matching time (ms) of the last Match call, excluding template
-    /// cache construction ¡ª reported by the native layer so template creation and
+    /// cache construction â€” reported by the native layer so template creation and
     /// UI drawing are never counted.</summary>
     public double LastMatchMs { get; private set; }
 
@@ -75,18 +75,18 @@ public class RotatedTemplateMatcher : IDisposable
         catch (DllNotFoundException ex)
         {
             throw new InvalidOperationException(
-                "ÎŞ·¨¼ÓÔØ GrayModelNative.dll¡£ÇëÈ·±£ÒÔÏÂÎÄ¼şÓë³ÌĞò¿ÉÖ´ĞĞÎÄ¼ş(GrayMatch.Wpf.exe)Î»ÓÚÍ¬Ò»Ä¿Â¼£º\n" +
+                "æ— æ³•åŠ è½½ GrayModelNative.dllã€‚è¯·ç¡®ä¿ä»¥ä¸‹æ–‡ä»¶ä¸ç¨‹åºå¯æ‰§è¡Œæ–‡ä»¶(GrayMatch.Wpf.exe)ä½äºåŒä¸€ç›®å½•ï¼š\n" +
                 "  GrayModelNative.dll\n  opencv_world480.dll\n" +
-                "  vcruntime140.dll¡¢vcruntime140_1.dll¡¢msvcp140.dll¡¢concrt140.dll¡¢vcomp140.dll\n" +
-                "£¨ºó¼¸¸öÊÇ VC++ 2022 ÔËĞĞ¿â£»ÈôÄ¿±êµçÄÔÃ»×° Visual Studio »ò VC++ ¿ÉÔÙ·¢ĞĞ°ü¾Í»áÈ±Ê§£¬\n" +
-                " »áµ¼ÖÂ GrayModelNative.dll ¼ÓÔØÊ§°Ü¡£Çë´Ó¿ª·¢»úµÄÊä³öÄ¿Â¼°ÑÕû¸öÎÄ¼ş¼ĞÒ»Æğ¿½±´¡££©\n" +
-                "Ô­Ê¼´íÎó£º" + ex.Message, ex);
+                "  vcruntime140.dllã€vcruntime140_1.dllã€msvcp140.dllã€concrt140.dllã€vcomp140.dll\n" +
+                "ï¼ˆåå‡ ä¸ªæ˜¯ VC++ 2022 è¿è¡Œåº“ï¼›è‹¥ç›®æ ‡ç”µè„‘æ²¡è£… Visual Studio æˆ– VC++ å¯å†å‘è¡ŒåŒ…å°±ä¼šç¼ºå¤±ï¼Œ\n" +
+                " ä¼šå¯¼è‡´ GrayModelNative.dll åŠ è½½å¤±è´¥ã€‚è¯·ä»å¼€å‘æœºçš„è¾“å‡ºç›®å½•æŠŠæ•´ä¸ªæ–‡ä»¶å¤¹ä¸€èµ·æ‹·è´ã€‚ï¼‰\n" +
+                "åŸå§‹é”™è¯¯ï¼š" + ex.Message, ex);
         }
         catch (BadImageFormatException ex)
         {
             throw new InvalidOperationException(
-                "GrayModelNative.dll ¼ÓÔØÊ§°Ü£ººÜ¿ÉÄÜÊÇ 32 Î» / 64 Î»²»Æ¥Åä¡£±¾³ÌĞòĞèÒª 64 Î» Windows£¬" +
-                "ÇÒ GrayModelNative.dll Îª x64 °æ±¾£¬Çë½«³ÌĞòÒÔ x64 ÔËĞĞ¡£\nÔ­Ê¼´íÎó£º" + ex.Message, ex);
+                "GrayModelNative.dll åŠ è½½å¤±è´¥ï¼šå¾ˆå¯èƒ½æ˜¯ 32 ä½ / 64 ä½ä¸åŒ¹é…ã€‚æœ¬ç¨‹åºéœ€è¦ 64 ä½ Windowsï¼Œ" +
+                "ä¸” GrayModelNative.dll ä¸º x64 ç‰ˆæœ¬ï¼Œè¯·å°†ç¨‹åºä»¥ x64 è¿è¡Œã€‚\nåŸå§‹é”™è¯¯ï¼š" + ex.Message, ex);
         }
         if (handle == IntPtr.Zero)
             throw new InvalidOperationException("Failed to create native matcher.");
@@ -165,8 +165,8 @@ public class RotatedTemplateMatcher : IDisposable
     /// region by -angle so it becomes upright and aligned with the template, compute the
     /// absolute grayscale difference, threshold it to an anomaly mask, cluster connected
     /// components, and heuristically classify each into one of four defect types:
-    ///   ÎÛ×Õ/ÒìÎï (dark blob), »®ºÛ (elongated bright/dark line),
-    ///   È±ÁÏ/ÆÆËğ (large missing/darker region), ÁÁ¶È/¶Ô±È¶ÈÒì³£ (global brightness/contrast shift).
+    ///   æ±¡æ¸/å¼‚ç‰© (dark blob), åˆ’ç—• (elongated bright/dark line),
+    ///   ç¼ºæ–™/ç ´æŸ (large missing/darker region), äº®åº¦/å¯¹æ¯”åº¦å¼‚å¸¸ (global brightness/contrast shift).
     /// Defects are returned in upright template-local coords plus a precomputed image-space
     /// center so the UI can draw the red overlay without re-deriving the rotation transform.
     /// </summary>
@@ -188,7 +188,7 @@ public class RotatedTemplateMatcher : IDisposable
             return outList;
         }
 
-        var srcGray = _sourceGray;      // cached by LoadSource ¡ª no per-call full-image conversion
+        var srcGray = _sourceGray;      // cached by LoadSource â€” no per-call full-image conversion
         var tmpl = _template;
         int tw = tmpl.Width, th = tmpl.Height;
         int minDim = Math.Min(tw, th);
@@ -252,7 +252,7 @@ public class RotatedTemplateMatcher : IDisposable
             using var mask = new Mat();
             Cv2.Threshold(diff, mask, diffThreshold, 255, ThresholdTypes.Binary);
 
-            // (a) drop everything sitting on a template grey-level transition ¡ª that is pose
+            // (a) drop everything sitting on a template grey-level transition â€” that is pose
             //     error on the part outline / internal contour junctions, never a defect.
             if (edgeBand != null) Cv2.Subtract(mask, edgeBand, mask);
 
@@ -285,7 +285,7 @@ public class RotatedTemplateMatcher : IDisposable
                 double areaFrac = area / (double)(tw * th);
                 if (areaFrac > maxAreaFrac) continue;
 
-                // tight, rotation-invariant footprint ¡ª an axis-aligned bbox of a diagonal scratch
+                // tight, rotation-invariant footprint â€” an axis-aligned bbox of a diagonal scratch
                 // is enormous, which is exactly why the old overlay looked oversized.
                 var minRect = Cv2.MinAreaRect(c);
                 double mw = minRect.Size.Width, mh = minRect.Size.Height;
@@ -309,11 +309,11 @@ public class RotatedTemplateMatcher : IDisposable
                                  && areaFrac <= 0.25;
 
                 string type;
-                if (elongated) type = "»®ºÛ";
-                else if (dark && big) type = "È±ÁÏ/ÆÆËğ";
-                else if (dark) type = "ÎÛ×Õ/ÒìÎï";
-                else if (bright) type = "ÁÁ¶ÈÒì³£";
-                else type = "ÁÁ¶È/¶Ô±È¶ÈÒì³£";
+                if (elongated) type = "åˆ’ç—•";
+                else if (dark && big) type = "ç¼ºæ–™/ç ´æŸ";
+                else if (dark) type = "æ±¡æ¸/å¼‚ç‰©";
+                else if (bright) type = "äº®åº¦å¼‚å¸¸";
+                else type = "äº®åº¦/å¯¹æ¯”åº¦å¼‚å¸¸";
 
                 var bbox = Cv2.BoundingRect(c);
 
@@ -353,7 +353,7 @@ public class RotatedTemplateMatcher : IDisposable
             }
 
             // No localized defect, but the instance as a whole is off in brightness/contrast.
-            // Draw a small centred badge ¡ª NOT a full-template red block.
+            // Draw a small centred badge â€” NOT a full-template red block.
             if (!foundLocal && meanDiff > globalBrightnessThresh)
             {
                 double badge = Math.Min(40.0, Math.Max(12.0, 0.22 * minDim));
@@ -373,7 +373,7 @@ public class RotatedTemplateMatcher : IDisposable
                     RectAngle = -ang,
                     ImgCx = r.CenterX,
                     ImgCy = r.CenterY,
-                    Type = "ÁÁ¶È/¶Ô±È¶ÈÒì³£",
+                    Type = "äº®åº¦/å¯¹æ¯”åº¦å¼‚å¸¸",
                     Score = meanDiff
                 });
             }
@@ -485,12 +485,12 @@ public class DefectOptions
 
     /// <summary>
     /// Half-width (px) of the "don't care" band grown around every template grey-level
-    /// transition ¡ª an extra safety net for parts whose outline still leaks through.
+    /// transition â€” an extra safety net for parts whose outline still leaks through.
     ///
-    /// Off by default: measured on a contour-heavy part across 0.2¡ã¨C3.0¡ã of pose error, the
+    /// Off by default: measured on a contour-heavy part across 0.2Â°â€“3.0Â° of pose error, the
     /// erode/dilate pass alone already removed 100% of the outline false positives, while a
     /// 3-px band additionally swallowed a genuine 20-px scratch (it shrank to 8 px, and to
-    /// nothing without the dilate). Turn it on (2¨C4) only if outline artefacts survive, and
+    /// nothing without the dilate). Turn it on (2â€“4) only if outline artefacts survive, and
     /// expect defects that touch a contour to be attenuated.
     /// </summary>
     public int EdgeTolerance { get; set; } = 0;

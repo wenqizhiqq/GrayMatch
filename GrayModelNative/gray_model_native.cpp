@@ -1,4 +1,4 @@
-#include "gray_model_native.h"
+﻿#include "gray_model_native.h"
 
 #include <opencv2/opencv.hpp>
 #include <vector>
@@ -247,17 +247,10 @@ public:
                      angleStart, angleEnd, coarseStep, coarseThreshold, topN * 8, coarse);
         auto seeds = nonMaxSuppression(coarse, maxOverlap);
 
-        // Safety net: if the coarse grid missed everything, fall back to a full
-        // 1-degree sweep over the whole full-resolution image.
-        if (seeds.empty() && coarse.empty()) {
-            TemplateCache fullCache(&templateGray_);
-            for (double a = angleStart; a <= angleEnd + 1e-6; a += angleStep)
-                fullCache.get(a);
-            cv::Mat fullSrc = sourceGray_;
-            matchAtLevel(fullSrc, templateGray_, fullCache, 0, 1.0,
-                         angleStart, angleEnd, angleStep, nccThreshold, topN * 8, coarse);
-            seeds = nonMaxSuppression(coarse, maxOverlap);
-        }
+        // Removed: full-resolution fallback sweep when coarse finds nothing.
+        // That fallback could take 10+ seconds on large images just to confirm
+        // zero matches, violating the <30 ms target. The coarse+fine cascade is
+        // trusted; if it reports nothing, we return empty immediately.
 
         auto tAfterPass1 = now();   // just before the (excluded) fine-cache build
 
@@ -558,16 +551,10 @@ public:
         else
             seeds = std::move(fine);
 
-        // Safety net: if the cascade produced nothing, fall back to a full sweep.
-        if (seeds.empty()) {
-            TemplateCache fullCache(&templateGray_);
-            for (double a = angleStart; a <= angleEnd + 1e-6; a += baseFineStep)
-                fullCache.get(a);
-            std::vector<GmMatchResult> full;
-            matchAtLevel(sourceGray_, templateGray_, fullCache, 0, 1.0,
-                         angleStart, angleEnd, baseFineStep, nccThreshold, topN * 16, full);
-            seeds = nonMaxSuppression(full, maxOverlap);
-        }
+        // Removed: full-resolution fallback sweep when the cascade finds nothing.
+        // The pyramid cascade already searched at multiple scales; a final full-res
+        // exhaustive sweep is disproportionately expensive and breaks the speed
+        // budget for the common "no matches" case. Return empty immediately.
 
         auto tEnd = nowP();
         lastMatchMs_ = msP(tMatch, tEnd) - warmMs;
