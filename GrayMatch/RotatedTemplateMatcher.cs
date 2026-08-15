@@ -11,7 +11,7 @@ public class RotatedTemplateMatcher : IDisposable
     private Mat? _sourceGray;
 
     public Mat Source => _source ?? throw new InvalidOperationException("Source image not loaded.");
-    public Mat Template => _template ?? throw new InvalidOperationException("Template not created.");
+    public Mat? Template => _template;
 
     /// <summary>Pure matching time (ms) of the last Match call, excluding template
     /// cache construction ¡ª reported by the native layer so template creation and
