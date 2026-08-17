@@ -650,21 +650,28 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private void ContourParam_Changed(object sender, RoutedEventArgs e)
     {
         // InitializeComponent 设置 Slider.Value 时会先触发 ValueChanged，此时命名字段可能还未赋值。
-        if (SldContourBlur == null || SldContourThreshold == null) return;
-        if (TbContourBlurVal == null || TbContourThresholdVal == null) return;
+        if (SldContourBlur == null || SldContourThreshold == null || SldScaleRange == null) return;
+        if (TbContourBlurVal == null || TbContourThresholdVal == null || TbScaleRangeVal == null) return;
 
         double blur = SldContourBlur.Value;
         int thr = (int)SldContourThreshold.Value;
+        double scaleRange = SldScaleRange.Value;
         // 同步显示数值
         TbContourBlurVal.Text = blur.ToString("0");
         TbContourThresholdVal.Text = thr.ToString();
+        TbScaleRangeVal.Text = scaleRange.ToString("0.00");
         _matcher.ContourThreshold = thr;
         _matcher.ContourBlur = blur;
+        _matcher.ScaleRange = scaleRange;   // 多尺度范围（模板大小倍数）
         if (ChkContour.IsChecked == true && _matcher.Template != null)
         {
             _matcher.RecomputeContours();
             RefreshTemplateVisuals();
-            StatusText = $"轮廓参数已更新：平滑={blur}，阈值={thr}（越大边越少）";
+            StatusText = $"轮廓参数已更新：平滑={blur}，阈值={thr}，多尺度={scaleRange:0.00}（越大边越少）";
+        }
+        else if (scaleRange > 0)
+        {
+            StatusText = $"已开启多尺度匹配：模板大小范围 {1 - scaleRange:0.00}×~{1 + scaleRange:0.00}×";
         }
         SaveSettings();
     }
@@ -694,6 +701,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         public int ContourThreshold { get; set; } = 30;
         public bool Dense { get; set; }
         public bool Defect { get; set; }
+        public double ScaleRange { get; set; }
     }
 
     private void SaveSettings()
@@ -715,6 +723,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 ContourThreshold = (int)(SldContourThreshold?.Value ?? 30),
                 Dense = ChkDense?.IsChecked == true,
                 Defect = ChkDefect?.IsChecked == true,
+                ScaleRange = SldScaleRange?.Value ?? 0,
             };
             File.WriteAllText(SettingsFile, JsonSerializer.Serialize(s, new JsonSerializerOptions { WriteIndented = true }));
         }
@@ -738,8 +747,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             CmbPyramid.SelectedIndex = s.PyramidIndex;
             SldContourBlur.Value = s.ContourBlur;
             SldContourThreshold.Value = s.ContourThreshold;
+            SldScaleRange.Value = s.ScaleRange;
             TbContourBlurVal.Text = s.ContourBlur.ToString("0");
             TbContourThresholdVal.Text = s.ContourThreshold.ToString();
+            TbScaleRangeVal.Text = s.ScaleRange.ToString("0.00");
             ChkContour.IsChecked = s.Contour;
             ChkDense.IsChecked = s.Dense;
             ChkDefect.IsChecked = s.Defect;
@@ -747,6 +758,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             // 同步到 matcher（UseContour 在 RunMatchAsync 里也会按勾选重设，这里一并保证一致）
             _matcher.ContourThreshold = s.ContourThreshold;
             _matcher.ContourBlur = s.ContourBlur;
+            _matcher.ScaleRange = s.ScaleRange;
             _matcher.UseContour = s.Contour;
             _defectEnabled = s.Defect;
             UpdateInfluenceFactors();

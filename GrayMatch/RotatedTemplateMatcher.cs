@@ -1,6 +1,7 @@
 using OpenCvSharp;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Threading;
 
 namespace GrayMatch;
 
@@ -13,6 +14,9 @@ public class RotatedTemplateMatcher : IDisposable
     private Mat? _templateContour;
     private byte[]? _templateContourMask;   // 模板边缘二值掩码（用于 UI 画绿色轮廓线）
     private int _templateContourMaskW, _templateContourMaskH;
+
+    // 保护 _sourceGray/_template 等共享 Mat：加载/设置与匹配互斥，防止匹配过程中 Mat 被释放。
+    private readonly SemaphoreSlim _dataLock = new(1, 1);
 
     public Mat Source => _source ?? throw new InvalidOperationException("Source image not loaded.");
     public Mat? Template => _template;
@@ -30,16 +34,24 @@ public class RotatedTemplateMatcher : IDisposable
         set
         {
             if (_useContour == value) return;
-            _useContour = value;
-            if (value)
+            _dataLock.Wait();
+            try
             {
-                if (_sourceGray != null) { _sourceContour?.Dispose(); _sourceContour = MakeContour(_sourceGray); }
-                if (_template != null) { _templateContour?.Dispose(); _templateContour = MakeContour(_template); }
+                _useContour = value;
+                if (value)
+                {
+                    if (_sourceGray != null) { _sourceContour?.Dispose(); _sourceContour = MakeContour(_sourceGray); }
+                    if (_template != null) { _templateContour?.Dispose(); _templateContour = MakeContour(_template); }
+                }
+                else
+                {
+                    _sourceContour?.Dispose(); _sourceContour = null;
+                    _templateContour?.Dispose(); _templateContour = null;
+                }
             }
-            else
+            finally
             {
-                _sourceContour?.Dispose(); _sourceContour = null;
-                _templateContour?.Dispose(); _templateContour = null;
+                _dataLock.Release();
             }
         }
     }
@@ -76,6 +88,23 @@ public class RotatedTemplateMatcher : IDisposable
         }
     }
 
+    /// <summary>
+    /// 多尺度匹配范围（模板大小的倍数）：0 = 关闭（仅原尺寸匹配）。
+    /// 取值 0~0.6，表示在 [1-ScaleRange, 1+ScaleRange] 区间内按若干尺度搜索。
+    /// 例如 0.3 ? 模板在 0.7×~1.3× 大小范围内都能被找到。默认 0（关闭）。
+    /// </summary>
+    private double _scaleRange = 0.0;
+    public double ScaleRange
+    {
+        get => _scaleRange;
+        set
+        {
+            if (value < 0) value = 0;
+            if (value > 0.6) value = 0.6;
+            _scaleRange = value;
+        }
+    }
+
     /// <summary>Pure matching time (ms) of the last Match call, excluding template
     /// cache construction — reported by the native layer so template creation and
     /// UI drawing are never counted.</summary>
@@ -88,43 +117,75 @@ public class RotatedTemplateMatcher : IDisposable
         if (!File.Exists(path))
             throw new FileNotFoundException($"找不到图片文件：{path}", path);
 
-        DisposeSource();
-        _source = Cv2.ImRead(path, ImreadModes.Color);
-        if (_source == null || _source.Empty())
-            throw new InvalidOperationException($"无法读取图片：{path}。文件可能已损坏、被占用，或格式不受 OpenCV 支持。");
+        _dataLock.Wait();
+        try
+        {
+            DisposeSource();
+            _source = Cv2.ImRead(path, ImreadModes.Color);
+            if (_source == null || _source.Empty())
+                throw new InvalidOperationException($"无法读取图片：{path}。文件可能已损坏、被占用，或格式不受 OpenCV 支持。");
 
-        _sourceGray = new Mat();
-        Cv2.CvtColor(_source, _sourceGray, ColorConversionCodes.BGR2GRAY);
-        if (UseContour) _sourceContour = MakeContour(_sourceGray);
+            _sourceGray = new Mat();
+            Cv2.CvtColor(_source, _sourceGray, ColorConversionCodes.BGR2GRAY);
+            if (UseContour) _sourceContour = MakeContour(_sourceGray);
+        }
+        finally
+        {
+            _dataLock.Release();
+        }
     }
 
     public void SetSource(Mat image)
     {
-        DisposeSource();
-        _source = image.Clone();
-        _sourceGray = new Mat();
-        if (_source.Channels() == 1)
-            _source.CopyTo(_sourceGray);
-        else
-            Cv2.CvtColor(_source, _sourceGray, ColorConversionCodes.BGR2GRAY);
+        _dataLock.Wait();
+        try
+        {
+            DisposeSource();
+            _source = image.Clone();
+            _sourceGray = new Mat();
+            if (_source.Channels() == 1)
+                _source.CopyTo(_sourceGray);
+            else
+                Cv2.CvtColor(_source, _sourceGray, ColorConversionCodes.BGR2GRAY);
+        }
+        finally
+        {
+            _dataLock.Release();
+        }
     }
 
     public void SetTemplateFromRoi(Rect roi)
     {
-        if (_sourceGray == null) throw new InvalidOperationException("Source image not loaded.");
-        _template?.Dispose();
-        _template = new Mat(_sourceGray, roi);
-        _template = _template.Clone();
-        if (UseContour) _templateContour = MakeContour(_template);
-        ComputeTemplateContourMask();
+        _dataLock.Wait();
+        try
+        {
+            if (_sourceGray == null) throw new InvalidOperationException("Source image not loaded.");
+            _template?.Dispose();
+            _template = new Mat(_sourceGray, roi);
+            _template = _template.Clone();
+            if (UseContour) _templateContour = MakeContour(_template);
+            ComputeTemplateContourMask();
+        }
+        finally
+        {
+            _dataLock.Release();
+        }
     }
 
     public void SetTemplate(Mat templateGray)
     {
-        _template?.Dispose();
-        _template = templateGray.Clone();
-        if (UseContour) _templateContour = MakeContour(_template);
-        ComputeTemplateContourMask();
+        _dataLock.Wait();
+        try
+        {
+            _template?.Dispose();
+            _template = templateGray.Clone();
+            if (UseContour) _templateContour = MakeContour(_template);
+            ComputeTemplateContourMask();
+        }
+        finally
+        {
+            _dataLock.Release();
+        }
     }
 
     /// <summary>
@@ -141,12 +202,62 @@ public class RotatedTemplateMatcher : IDisposable
         int topN,
         int denseMode = 0)
     {
-        if (_sourceGray == null || _template == null)
-            throw new InvalidOperationException("Source and template must be set before matching.");
+        _dataLock.Wait();
+        try
+        {
+            if (_sourceGray == null || _template == null)
+                throw new InvalidOperationException("Source and template must be set before matching.");
 
-        // 轮廓匹配：用梯度幅度图代替灰度图喂给 native 的 NCC（内存布局一致，无需改 C++）。
-        var srcMatch = (UseContour && _sourceContour != null) ? _sourceContour : _sourceGray;
-        var tplMatch = (UseContour && _templateContour != null) ? _templateContour : _template;
+            if (_scaleRange <= 0)
+                return MatchSingleScale(_sourceGray, _sourceContour, pyramidLevels, angleStart, angleEnd,
+                    angleStep, nccThreshold, maxOverlap, topN, denseMode, 1.0);
+
+        // 多尺度：在 [1-ScaleRange, 1+ScaleRange] 内取若干尺度，把原图按比例缩小/放大后
+        // 用原尺寸模板匹配（目标在该尺度下恰好与模板等大），再把结果映射回原图坐标。
+        int steps = Math.Max(3, (int)Math.Round(_scaleRange / 0.1) + 1); // 0.1 一步，至少 3 步
+        var all = new List<MatchResult>();
+        double totalMs = 0;
+        for (int k = 0; k < steps; k++)
+        {
+            double sf = steps == 1 ? 1.0 : (1.0 - _scaleRange + 2.0 * _scaleRange * k / (steps - 1));
+            double srcFactor = 1.0 / sf;   // 原图缩放倍数：目标大(sf>1)?原图缩小
+            using var srcScaled = new Mat();
+            Cv2.Resize(_sourceGray, srcScaled, OpenCvSharp.Size.Zero, srcFactor, srcFactor, InterpolationFlags.Linear);
+            Mat? contourScaled = null;
+            if (UseContour && _sourceContour != null)
+            {
+                contourScaled = new Mat();
+                Cv2.Resize(_sourceContour, contourScaled, OpenCvSharp.Size.Zero, srcFactor, srcFactor, InterpolationFlags.Linear);
+            }
+            var res = MatchSingleScale(srcScaled, contourScaled, pyramidLevels, angleStart, angleEnd,
+                angleStep, nccThreshold, maxOverlap, topN, denseMode, sf);
+            totalMs += LastMatchMs;   // 每次单尺度调用都会刷新 LastMatchMs
+            if (contourScaled != null) contourScaled.Dispose();
+            all.AddRange(res);
+        }
+
+        LastMatchMs = totalMs;
+        // 跨尺度去重：同一目标在相邻尺度会被重复检出，按中心邻近+角度接近合并，保留最高分。
+        var deduped = NmsAcrossScales(all, maxOverlap, angleStep);
+        if (deduped.Count > topN) deduped = deduped.GetRange(0, topN);
+        for (int i = 0; i < deduped.Count; i++) deduped[i].Index = i + 1;
+        return deduped;
+        }
+        finally
+        {
+            _dataLock.Release();
+        }
+    }
+
+    // 单尺度匹配：在给定（已缩放的）原图上用原尺寸模板跑 native NCC。mapFactor 用于把
+    // 检测结果从缩放坐标映射回原图坐标（中心/尺寸 × mapFactor，角度不变），并记录 Scale=mapFactor。
+    private List<MatchResult> MatchSingleScale(
+        Mat srcGray, Mat? srcContour,
+        int pyramidLevels, double angleStart, double angleEnd, double angleStep,
+        double nccThreshold, double maxOverlap, int topN, int denseMode, double mapFactor)
+    {
+        var srcMatch = (UseContour && srcContour != null) ? srcContour : srcGray;
+        var tplMatch = (UseContour && _templateContour != null) ? _templateContour! : _template!;
 
         IntPtr handle;
         try
@@ -200,14 +311,15 @@ public class RotatedTemplateMatcher : IDisposable
                 {
                     Index = i + 1,
                     Score = r.score,
-                    CenterX = r.centerX,
-                    CenterY = r.centerY,
+                    CenterX = r.centerX * mapFactor,
+                    CenterY = r.centerY * mapFactor,
                     Angle = r.angle,
-                    TemplateWidth = r.templateWidth,
-                    TemplateHeight = r.templateHeight,
-                    LeftTopX = r.leftTopX,
-                    LeftTopY = r.leftTopY,
-                    Level = r.level
+                    TemplateWidth = (int)Math.Round(r.templateWidth * mapFactor),
+                    TemplateHeight = (int)Math.Round(r.templateHeight * mapFactor),
+                    LeftTopX = (int)Math.Round(r.leftTopX * mapFactor),
+                    LeftTopY = (int)Math.Round(r.leftTopY * mapFactor),
+                    Level = r.level,
+                    Scale = mapFactor
                 });
             }
             return results;
@@ -216,6 +328,33 @@ public class RotatedTemplateMatcher : IDisposable
         {
             gm_destroy(handle);
         }
+    }
+
+    // 跨尺度去重：删除同一目标在不同尺度下的重复检出。判定为重复的条件：
+    // 中心距离 < 0.4 × 较小框短边，且角度差在 2×角度步长内。保留分数更高者。
+    private static List<MatchResult> NmsAcrossScales(List<MatchResult> all, double maxOverlap, double angleStep)
+    {
+        var sorted = all.OrderByDescending(r => r.Score).ToList();
+        var kept = new List<MatchResult>();
+        foreach (var cand in sorted)
+        {
+            bool dup = false;
+            int minSide = Math.Min(cand.TemplateWidth, cand.TemplateHeight);
+            double tol = Math.Max(2.0, 0.4 * minSide);
+            double angTol = Math.Max(2.0, 2.0 * angleStep);
+            foreach (var k in kept)
+            {
+                double dx = cand.CenterX - k.CenterX;
+                double dy = cand.CenterY - k.CenterY;
+                if (Math.Sqrt(dx * dx + dy * dy) < tol && Math.Abs(cand.Angle - k.Angle) < angTol)
+                {
+                    dup = true;
+                    break;
+                }
+            }
+            if (!dup) kept.Add(cand);
+        }
+        return kept;
     }
 
 
@@ -261,6 +400,9 @@ public class RotatedTemplateMatcher : IDisposable
         int erodeSize = 2,
         int dilateSize = 3)
     {
+        _dataLock.Wait();
+        try
+        {
         var swDefect = System.Diagnostics.Stopwatch.StartNew();
         var outList = new List<DefectResult>();
         if (_sourceGray == null || _template == null || results == null || results.Count == 0)
@@ -314,17 +456,29 @@ public class RotatedTemplateMatcher : IDisposable
             double ang = r.Angle;
             var center = new Point2f((float)r.CenterX, (float)r.CenterY);
 
-            // Fold "upright the whole image" + "crop the template window" into ONE affine warp whose
-            // destination is only tw x th. warpAffine is destination-driven, so the cost drops from
-            // O(image area) per match to O(template area) per match.
+            // 多尺度匹配时目标实际大小为 tw*Scale × th*Scale（Scale 默认 1）。
+            // 先把该大小的旋转区域抠出来，再缩放到模板尺寸 tw×th 再与模板比对。
+            int sw = Math.Max(4, (int)Math.Round(tw * r.Scale));
+            int sh = Math.Max(4, (int)Math.Round(th * r.Scale));
+
+            // Fold "upright the whole image" + "crop the template window" into ONE affine warp.
             using var m = Cv2.GetRotationMatrix2D(center, -ang, 1.0);
-            double ox = r.CenterX - (tw - 1) * 0.5;
-            double oy = r.CenterY - (th - 1) * 0.5;
+            double ox = r.CenterX - (sw - 1) * 0.5;
+            double oy = r.CenterY - (sh - 1) * 0.5;
             m.Set<double>(0, 2, m.Get<double>(0, 2) - ox);
             m.Set<double>(1, 2, m.Get<double>(1, 2) - oy);
 
             using var patch = new Mat();
-            Cv2.WarpAffine(srcGray, patch, m, new OpenCvSharp.Size(tw, th), (InterpolationFlags)1, BorderTypes.Replicate);
+            if (sw == tw && sh == th)
+            {
+                Cv2.WarpAffine(srcGray, patch, m, new OpenCvSharp.Size(tw, th), InterpolationFlags.Linear, BorderTypes.Replicate);
+            }
+            else
+            {
+                using var patchBig = new Mat();
+                Cv2.WarpAffine(srcGray, patchBig, m, new OpenCvSharp.Size(sw, sh), InterpolationFlags.Linear, BorderTypes.Replicate);
+                Cv2.Resize(patchBig, patch, new OpenCvSharp.Size(tw, th), 0, 0, InterpolationFlags.Linear);
+            }
 
             using var diff = new Mat();
             Cv2.Absdiff(tmpl, patch, diff);
@@ -472,6 +626,11 @@ public class RotatedTemplateMatcher : IDisposable
         }
 
         return outList;
+        }
+        finally
+        {
+            _dataLock.Release();
+        }
     }
 
     /// <summary>Copies a continuous CV_8UC1 mask (th rows x tw cols) into a managed byte[].</summary>
@@ -611,15 +770,23 @@ public class RotatedTemplateMatcher : IDisposable
     /// </summary>
     public void RecomputeContours()
     {
-        if (_template != null)
+        _dataLock.Wait();
+        try
         {
-            ComputeTemplateContourMask();
-            if (UseContour) { _templateContour?.Dispose(); _templateContour = MakeContour(_template); }
+            if (_template != null)
+            {
+                ComputeTemplateContourMask();
+                if (UseContour) { _templateContour?.Dispose(); _templateContour = MakeContour(_template); }
+            }
+            if (UseContour && _sourceGray != null)
+            {
+                _sourceContour?.Dispose();
+                _sourceContour = MakeContour(_sourceGray);
+            }
         }
-        if (UseContour && _sourceGray != null)
+        finally
         {
-            _sourceContour?.Dispose();
-            _sourceContour = MakeContour(_sourceGray);
+            _dataLock.Release();
         }
     }
 
@@ -663,6 +830,8 @@ public class RotatedTemplateMatcher : IDisposable
         _templateContour?.Dispose();
         _template = null;
         _templateContour = null;
+        // 不 Dispose _dataLock：如果匹配/缺陷检测线程正持有它，Dispose 会抛异常。
+        // 程序退出时由终结器回收即可。
         GC.SuppressFinalize(this);
     }
 }
