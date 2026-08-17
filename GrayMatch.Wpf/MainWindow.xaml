@@ -57,7 +57,7 @@
                     <TextBlock Text="操作" FontWeight="Bold" FontSize="12" Margin="0,1,0,4"/> 
                     <Button x:Name="BtnOpen" Content="打开文件夹" Style="{StaticResource CompactButton}"
                   ToolTip="点这里选一个放图片的文件夹（bmp / jpg / png 都支持），选好后用上面的列表切换图片"/>
-                    <TextBlock Text="图片列表（点一张即载入，不自动匹配）" Style="{StaticResource CompactText}"/>
+                    <TextBlock Text="图片列表（点一张即载入，自动匹配）" Style="{StaticResource CompactText}"/>
                     <ListBox x:Name="LstImages" Height="92" Margin="0,2,0,6"
             SelectionChanged="LstImages_SelectionChanged"
             ToolTip="打开文件夹后会列出里面的图片，点一张就载入到右侧画布（只载入显示，不会自动跑匹配；要匹配请点「开始查找」）"/>

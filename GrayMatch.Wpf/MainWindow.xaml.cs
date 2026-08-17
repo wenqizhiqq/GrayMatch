@@ -6,6 +6,7 @@ using System.IO;
 using System.Text;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -126,17 +127,24 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         BtnMatch.Click += async (_, _) => await RunMatchAsync();
         BtnClear.Click += (_, _) => ClearResults();
 
-        TbAngleStart.TextChanged += (_, _) => UpdateInfluenceFactors();
-        TbAngleEnd.TextChanged += (_, _) => UpdateInfluenceFactors();
-        TbAngleStep.TextChanged += (_, _) => UpdateInfluenceFactors();
-        TbThreshold.TextChanged += (_, _) => UpdateInfluenceFactors();
-        TbOverlap.TextChanged += (_, _) => UpdateInfluenceFactors();
-        TbTopN.TextChanged += (_, _) => UpdateInfluenceFactors();
-        CmbPyramid.SelectionChanged += (_, _) => UpdateInfluenceFactors();
+        TbAngleStart.TextChanged += (_, _) => { UpdateInfluenceFactors(); SaveSettings(); };
+        TbAngleEnd.TextChanged += (_, _) => { UpdateInfluenceFactors(); SaveSettings(); };
+        TbAngleStep.TextChanged += (_, _) => { UpdateInfluenceFactors(); SaveSettings(); };
+        TbThreshold.TextChanged += (_, _) => { UpdateInfluenceFactors(); SaveSettings(); };
+        TbOverlap.TextChanged += (_, _) => { UpdateInfluenceFactors(); SaveSettings(); };
+        TbTopN.TextChanged += (_, _) => { UpdateInfluenceFactors(); SaveSettings(); };
+        CmbPyramid.SelectionChanged += (_, _) => { UpdateInfluenceFactors(); SaveSettings(); };
         ChkDefect.Checked += ChkDefect_Changed;
         ChkDefect.Unchecked += ChkDefect_Changed;
         ChkContour.Checked += ChkContour_Changed;
         ChkContour.Unchecked += ChkContour_Changed;
+        ChkDense.Checked += ChkDense_Changed;
+        ChkDense.Unchecked += ChkDense_Changed;
+    }
+
+    private void ChkDense_Changed(object sender, RoutedEventArgs e)
+    {
+        SaveSettings();
     }
 
     #endregion
@@ -195,7 +203,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         catch (OperationCanceledException) { return; }
 
         await LoadSourceFromPathAsync(path, token);
-        token.ThrowIfCancellationRequested();
+        if (token.IsCancellationRequested) return; // 被新选择取代，安静退出，不抛异常
 
         // 已创建模板时，切换图片后自动匹配；无模板则不弹窗、只载入。
         if (_matcher.Template != null)
@@ -206,9 +214,11 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
     private async Task LoadSourceFromPathAsync(string path, CancellationToken token)
     {
-        await _loadSem.WaitAsync(token);
+        bool entered = false;
         try
         {
+            await _loadSem.WaitAsync(token);
+            entered = true;
             token.ThrowIfCancellationRequested();
             await Task.Run(() => _matcher.LoadSource(path), token);
             var mat = _matcher.Source;
@@ -247,7 +257,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         }
         finally
         {
-            _loadSem.Release();
+            if (entered) _loadSem.Release();
         }
     }
 
@@ -417,6 +427,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         _defectEnabled = ChkDefect.IsChecked == true;
         DefectSummaryText = "-";
         StatusText = _defectEnabled ? "已开启缺陷检查" : "已关闭缺陷检查";
+        SaveSettings();
     }
 
     private void ChkContour_Changed(object sender, RoutedEventArgs e)
@@ -427,6 +438,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         _matcher.RecomputeContours();
         RefreshTemplateVisuals();
         StatusText = on ? "已开启轮廓匹配（用边缘梯度图，抗光照变化；目标会用绿色线条画出模板形状）" : "已关闭轮廓匹配（用灰度图）";
+        SaveSettings();
     }
 
     private static string BuildDefectSummary(List<DefectResult> defects)
@@ -654,6 +666,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             RefreshTemplateVisuals();
             StatusText = $"轮廓参数已更新：平滑={blur}，阈值={thr}（越大边越少）";
         }
+        SaveSettings();
     }
 
     #endregion
@@ -664,6 +677,83 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "GrayMatch");
     private static readonly string LastFolderFile = Path.Combine(AppDataDir, "lastFolder.txt");
     private static readonly string TemplateFile = Path.Combine(AppDataDir, "template.png");
+    private static readonly string SettingsFile = Path.Combine(AppDataDir, "settings.json");
+
+    // 所有匹配/轮廓参数自动保存自动载入；JSON 仅存 UI 控件的值，启动时回填控件即可。
+    private sealed class MatchSettings
+    {
+        public string AngleStart { get; set; } = "-180";
+        public string AngleEnd { get; set; } = "180";
+        public string AngleStep { get; set; } = "1";
+        public string Threshold { get; set; } = "0.5";
+        public string Overlap { get; set; } = "0.25";
+        public string TopN { get; set; } = "200";
+        public int PyramidIndex { get; set; } = 3;
+        public bool Contour { get; set; }
+        public double ContourBlur { get; set; } = 1;
+        public int ContourThreshold { get; set; } = 30;
+        public bool Dense { get; set; }
+        public bool Defect { get; set; }
+    }
+
+    private void SaveSettings()
+    {
+        try
+        {
+            Directory.CreateDirectory(AppDataDir);
+            var s = new MatchSettings
+            {
+                AngleStart = TbAngleStart?.Text ?? "-180",
+                AngleEnd = TbAngleEnd?.Text ?? "180",
+                AngleStep = TbAngleStep?.Text ?? "1",
+                Threshold = TbThreshold?.Text ?? "0.5",
+                Overlap = TbOverlap?.Text ?? "0.25",
+                TopN = TbTopN?.Text ?? "200",
+                PyramidIndex = CmbPyramid?.SelectedIndex ?? 3,
+                Contour = ChkContour?.IsChecked == true,
+                ContourBlur = SldContourBlur?.Value ?? 1,
+                ContourThreshold = (int)(SldContourThreshold?.Value ?? 30),
+                Dense = ChkDense?.IsChecked == true,
+                Defect = ChkDefect?.IsChecked == true,
+            };
+            File.WriteAllText(SettingsFile, JsonSerializer.Serialize(s, new JsonSerializerOptions { WriteIndented = true }));
+        }
+        catch { /* ignore */ }
+    }
+
+    private void ApplyPersistedSettings()
+    {
+        try
+        {
+            if (!File.Exists(SettingsFile)) return;
+            var s = JsonSerializer.Deserialize<MatchSettings>(File.ReadAllText(SettingsFile));
+            if (s == null) return;
+
+            TbAngleStart.Text = s.AngleStart;
+            TbAngleEnd.Text = s.AngleEnd;
+            TbAngleStep.Text = s.AngleStep;
+            TbThreshold.Text = s.Threshold;
+            TbOverlap.Text = s.Overlap;
+            TbTopN.Text = s.TopN;
+            CmbPyramid.SelectedIndex = s.PyramidIndex;
+            SldContourBlur.Value = s.ContourBlur;
+            SldContourThreshold.Value = s.ContourThreshold;
+            TbContourBlurVal.Text = s.ContourBlur.ToString("0");
+            TbContourThresholdVal.Text = s.ContourThreshold.ToString();
+            ChkContour.IsChecked = s.Contour;
+            ChkDense.IsChecked = s.Dense;
+            ChkDefect.IsChecked = s.Defect;
+
+            // 同步到 matcher（UseContour 在 RunMatchAsync 里也会按勾选重设，这里一并保证一致）
+            _matcher.ContourThreshold = s.ContourThreshold;
+            _matcher.ContourBlur = s.ContourBlur;
+            _matcher.UseContour = s.Contour;
+            _defectEnabled = s.Defect;
+            UpdateInfluenceFactors();
+            if (s.Contour && _matcher.Template != null) RefreshTemplateVisuals();
+        }
+        catch { /* ignore */ }
+    }
 
     private void SaveLastFolder()
     {
@@ -686,6 +776,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     {
         try
         {
+            ApplyPersistedSettings();   // 先回填参数控件
+
             if (File.Exists(TemplateFile))
             {
                 using var t = Cv2.ImRead(TemplateFile, ImreadModes.Grayscale);
@@ -808,6 +900,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     {
         _matchCts?.Cancel();
         _selCts?.Cancel();
+        SaveSettings();   // 关闭前兜底保存全部参数
         _matcher.Dispose();
         base.OnClosing(e);
     }
