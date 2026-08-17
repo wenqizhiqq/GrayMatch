@@ -71,34 +71,72 @@
                     <Separator Margin="0,8,0,4"/>
                     <TextBlock Text="匹配参数" FontWeight="Bold" FontSize="12" Margin="0,1,0,4"/>
 
-                    <TextBlock Text="起始角度(度) -180~180，越大越快精度越低" Style="{StaticResource ParamLabel}"/>
-                    <TextBox x:Name="TbAngleStart" Text="-180" Margin="0,0,0,4" FontSize="10.5"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
+                        <TextBlock Text="起始角度(度) -180~180" Style="{StaticResource CompactText}" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="TbAngleStartVal" Text="-45" Margin="4,0,0,3" FontSize="10.5" FontWeight="Bold" Foreground="#FF2E7D32"/>
+                    </StackPanel>
+                    <Slider x:Name="SldAngleStart" Minimum="-180" Maximum="180" Value="-45" TickFrequency="1"
+                            IsSnapToTickEnabled="True" LargeChange="10" SmallChange="1" Margin="0,0,0,4"
+                            ValueChanged="MatchParam_Changed"
+                            ToolTip="负值逆时针，正值顺时针。范围越大扫描越慢。"/>
 
-                    <TextBlock Text="终止角度(度) -180~180，越大越快精度越低" Style="{StaticResource ParamLabel}"/>
-                    <TextBox x:Name="TbAngleEnd" Text="180" Margin="0,0,0,4" FontSize="10.5"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
+                        <TextBlock Text="终止角度(度) -180~180" Style="{StaticResource CompactText}" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="TbAngleEndVal" Text="45" Margin="4,0,0,3" FontSize="10.5" FontWeight="Bold" Foreground="#FF2E7D32"/>
+                    </StackPanel>
+                    <Slider x:Name="SldAngleEnd" Minimum="-180" Maximum="180" Value="45" TickFrequency="1"
+                            IsSnapToTickEnabled="True" LargeChange="10" SmallChange="1" Margin="0,0,0,4"
+                            ValueChanged="MatchParam_Changed"
+                            ToolTip="负值逆时针，正值顺时针。范围越大扫描越慢。"/>
 
-                    <TextBlock Text="角度步长(度) 越大越快精度越低，越小越慢精度越高" Style="{StaticResource ParamLabel}"/>
-                    <TextBox x:Name="TbAngleStep" Text="1" Margin="0,0,0,4" FontSize="10.5"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
+                        <TextBlock Text="角度步长(度) 越小越慢越精确" Style="{StaticResource CompactText}" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="TbAngleStepVal" Text="2" Margin="4,0,0,3" FontSize="10.5" FontWeight="Bold" Foreground="#FF2E7D32"/>
+                    </StackPanel>
+                    <Slider x:Name="SldAngleStep" Minimum="0.1" Maximum="10" Value="2" TickFrequency="0.1"
+                            IsSnapToTickEnabled="True" LargeChange="1" SmallChange="0.1" Margin="0,0,0,4"
+                            ValueChanged="MatchParam_Changed"
+                            ToolTip="每次旋转增量。1° 适合精细，5° 适合快速粗找。"/>
 
-                    <TextBlock Text="NCC相似度阈值 0~1，越高越严格，匹配数量越少" Style="{StaticResource ParamLabel}"/>
-                    <TextBox x:Name="TbThreshold" Text="0.5" Margin="0,0,0,4" FontSize="10.5"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
+                        <TextBlock Text="NCC相似度阈值 0~1" Style="{StaticResource CompactText}" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="TbThresholdVal" Text="0.30" Margin="4,0,0,3" FontSize="10.5" FontWeight="Bold" Foreground="#FF2E7D32"/>
+                    </StackPanel>
+                    <Slider x:Name="SldThreshold" Minimum="0" Maximum="1" Value="0.30" TickFrequency="0.01"
+                            IsSnapToTickEnabled="True" LargeChange="0.05" SmallChange="0.01" Margin="0,0,0,4"
+                            ValueChanged="MatchParam_Changed"
+                            ToolTip="越高越严格，匹配数量越少。反光/细笔画图建议 0.40 以上。"/>
 
-                    <TextBlock Text="最大允许重叠0-1 过滤重复匹配，越大越宽松" Style="{StaticResource ParamLabel}"/>
-                    <TextBox x:Name="TbOverlap" Text="0.1" Margin="0,0,0,4" FontSize="10.5"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
+                        <TextBlock Text="最大允许重叠 0~1" Style="{StaticResource CompactText}" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="TbOverlapVal" Text="0.25" Margin="4,0,0,3" FontSize="10.5" FontWeight="Bold" Foreground="#FF2E7D32"/>
+                    </StackPanel>
+                    <Slider x:Name="SldOverlap" Minimum="0" Maximum="1" Value="0.25" TickFrequency="0.01"
+                            IsSnapToTickEnabled="True" LargeChange="0.05" SmallChange="0.01" Margin="0,0,0,4"
+                            ValueChanged="MatchParam_Changed"
+                            ToolTip="两个候选框重叠超过该比例时只保留分数高的。越大越宽松。"/>
 
-                    <TextBlock Text="最多输出匹配结果数量，超过了就不匹配" Style="{StaticResource ParamLabel}"/>
-                    <TextBox x:Name="TbTopN" Text="200" Margin="0,0,0,4" FontSize="10.5"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
+                        <TextBlock Text="最多输出匹配结果数量" Style="{StaticResource CompactText}" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="TbTopNVal" Text="20" Margin="4,0,0,3" FontSize="10.5" FontWeight="Bold" Foreground="#FF2E7D32"/>
+                    </StackPanel>
+                    <Slider x:Name="SldTopN" Minimum="1" Maximum="500" Value="20" TickFrequency="1"
+                            IsSnapToTickEnabled="True" LargeChange="10" SmallChange="1" Margin="0,0,0,4"
+                            ValueChanged="MatchParam_Changed"
+                            ToolTip="超过该数量就不再输出后续结果。密集阵列可调到 200。"/>
 
-                    <TextBlock Text="金字塔层级 层级越高速度越快越容易漏检" Style="{StaticResource ParamLabel}"/>
-                    <ComboBox x:Name="CmbPyramid" SelectedIndex="3" IsReadOnly="True" Margin="0,0,0,4" FontSize="10.5">
-                        <ComboBoxItem>0</ComboBoxItem>
-                        <ComboBoxItem>1</ComboBoxItem>
-                        <ComboBoxItem>2</ComboBoxItem>
-                        <ComboBoxItem>3</ComboBoxItem>
-                        <ComboBoxItem>4</ComboBoxItem>
-                        <ComboBoxItem>5</ComboBoxItem>
-                        <ComboBoxItem>6</ComboBoxItem>
-                    </ComboBox>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
+                        <TextBlock Text="金字塔层级 0~6" Style="{StaticResource CompactText}" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="TbPyramidVal" Text="3" Margin="4,0,0,3" FontSize="10.5" FontWeight="Bold" Foreground="#FF2E7D32"/>
+                    </StackPanel>
+                    <Slider x:Name="SldPyramid" Minimum="0" Maximum="6" Value="3" TickFrequency="1"
+                            IsSnapToTickEnabled="True" LargeChange="1" SmallChange="1" Margin="0,0,0,4"
+                            ValueChanged="MatchParam_Changed"
+                            ToolTip="层级越高越快，但过小模板或角度大时容易漏检。"/>
+
+                    <Button x:Name="BtnMatchDefaults" Content="恢复默认匹配参数" Height="24" Margin="0,4,0,4" FontSize="10.5"
+                            Click="BtnMatchDefaults_Click"
+                            ToolTip="将上方所有匹配参数恢复为推荐默认值（-45~45°, 步长2, 阈值0.30, 重叠0.25, TopN20, 金字塔3）"/>
 
                     <CheckBox x:Name="ChkDense" Content="密集模式（适合规则阵列）" Margin="0,6,0,2" FontSize="11" IsChecked="False"
                       ToolTip="默认不勾选（快速）：种子上限 24，稀疏/普通图几毫秒（实测 ±45°≈5ms），但规则阵列里的大部分重复目标会被漏检，只保留少量代表。&#10;勾选（规则阵列）：粗扫不限制种子数量，可把焊球阵列等成百上千个相同目标全部检出；代价是密集图上耗时会升到十几毫秒（实测 ±45°≈15ms、全 360°≈38ms）。"/>
@@ -160,44 +198,72 @@
                         <StackPanel>
                             <TextBlock Text="缺陷检测参数" FontWeight="Bold" FontSize="11.5" Margin="0,0,0,4"/>
 
-                            <TextBlock Text="差值阈值 10~120，越低越灵敏" Style="{StaticResource ParamLabel}"/>
-                            <TextBox x:Name="TbDefectDiff" Text="45" Margin="0,0,0,4" FontSize="10.5"
-                     TextChanged="DefectParam_Changed"
-                     ToolTip="灰度差超过该值才算异常像素。误检多就调高，漏检就调低。"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
+                                <TextBlock Text="差值阈值 1~254" Style="{StaticResource CompactText}" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="TbDefectDiffVal" Text="45" Margin="4,0,0,3" FontSize="10.5" FontWeight="Bold" Foreground="#FF2E7D32"/>
+                            </StackPanel>
+                            <Slider x:Name="SldDefectDiff" Minimum="1" Maximum="254" Value="45" TickFrequency="1"
+                                    IsSnapToTickEnabled="True" LargeChange="10" SmallChange="1" Margin="0,0,0,4"
+                                    ValueChanged="DefectParam_Changed"
+                                    ToolTip="灰度差超过该值才算异常像素。误检多就调高，漏检就调低。"/>
 
-                            <TextBlock Text="边缘容差(px) 0=关，仍误报时设2~4" Style="{StaticResource ParamLabel}"/>
-                            <TextBox x:Name="TbDefectEdgeTol" Text="0" Margin="0,0,0,4" FontSize="10.5"
-                     TextChanged="DefectParam_Changed"
-                     ToolTip="沿模板轮廓生成的“不关心”带宽度，是腐蚀膨胀之外的额外保险。默认关闭：实测腐蚀膨胀已能清除全部轮廓误报，而 3px 容差带会把一条真实的 20px 划痕削到 8px。轮廓误报仍然存在时再设 2~4。"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
+                                <TextBlock Text="边缘容差(px) 0~30" Style="{StaticResource CompactText}" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="TbDefectEdgeTolVal" Text="0" Margin="4,0,0,3" FontSize="10.5" FontWeight="Bold" Foreground="#FF2E7D32"/>
+                            </StackPanel>
+                            <Slider x:Name="SldDefectEdgeTol" Minimum="0" Maximum="30" Value="0" TickFrequency="1"
+                                    IsSnapToTickEnabled="True" LargeChange="2" SmallChange="1" Margin="0,0,0,4"
+                                    ValueChanged="DefectParam_Changed"
+                                    ToolTip="沿模板轮廓生成的“不关心”带宽度。默认关闭；轮廓误报仍存在时设 2~4。"/>
 
-                            <TextBlock Text="边缘梯度阈值 5~120，越低带越宽" Style="{StaticResource ParamLabel}"/>
-                            <TextBox x:Name="TbDefectEdgeGrad" Text="30" Margin="0,0,0,4" FontSize="10.5"
-                     TextChanged="DefectParam_Changed"
-                     ToolTip="判定“这是模板轮廓”的灰度跳变强度。调低会把更多弱边纳入容差带，抑制更强但更易漏检。"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
+                                <TextBlock Text="边缘梯度阈值 1~254" Style="{StaticResource CompactText}" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="TbDefectEdgeGradVal" Text="30" Margin="4,0,0,3" FontSize="10.5" FontWeight="Bold" Foreground="#FF2E7D32"/>
+                            </StackPanel>
+                            <Slider x:Name="SldDefectEdgeGrad" Minimum="1" Maximum="254" Value="30" TickFrequency="1"
+                                    IsSnapToTickEnabled="True" LargeChange="10" SmallChange="1" Margin="0,0,0,4"
+                                    ValueChanged="DefectParam_Changed"
+                                    ToolTip="判定“这是模板轮廓”的灰度跳变强度。调低会把更多弱边纳入容差带，抑制更强但更易漏检。"/>
 
-                            <TextBlock Text="腐蚀核 0/2~7，消细边残留" Style="{StaticResource ParamLabel}"/>
-                            <TextBox x:Name="TbDefectErode" Text="2" Margin="0,0,0,4" FontSize="10.5"
-                     TextChanged="DefectParam_Changed"
-                     ToolTip="先腐蚀掉细窄的边缘残留。填 0 或 1 表示不腐蚀。过大会吃掉真实的细划痕。"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
+                                <TextBlock Text="腐蚀核 0~15" Style="{StaticResource CompactText}" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="TbDefectErodeVal" Text="2" Margin="4,0,0,3" FontSize="10.5" FontWeight="Bold" Foreground="#FF2E7D32"/>
+                            </StackPanel>
+                            <Slider x:Name="SldDefectErode" Minimum="0" Maximum="15" Value="2" TickFrequency="1"
+                                    IsSnapToTickEnabled="True" LargeChange="1" SmallChange="1" Margin="0,0,0,4"
+                                    ValueChanged="DefectParam_Changed"
+                                    ToolTip="先腐蚀掉细窄的边缘残留。0 或 1 表示不腐蚀。过大会吃掉真实的细划痕。"/>
 
-                            <TextBlock Text="膨胀核 0/2~7，恢复缺陷面积" Style="{StaticResource ParamLabel}"/>
-                            <TextBox x:Name="TbDefectDilate" Text="3" Margin="0,0,0,4" FontSize="10.5"
-                     TextChanged="DefectParam_Changed"
-                     ToolTip="腐蚀后再膨胀，恢复真实缺陷尺寸并把被腐蚀打断的划痕重新连成一条。建议不小于腐蚀核。"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
+                                <TextBlock Text="膨胀核 0~15" Style="{StaticResource CompactText}" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="TbDefectDilateVal" Text="3" Margin="4,0,0,3" FontSize="10.5" FontWeight="Bold" Foreground="#FF2E7D32"/>
+                            </StackPanel>
+                            <Slider x:Name="SldDefectDilate" Minimum="0" Maximum="15" Value="3" TickFrequency="1"
+                                    IsSnapToTickEnabled="True" LargeChange="1" SmallChange="1" Margin="0,0,0,4"
+                                    ValueChanged="DefectParam_Changed"
+                                    ToolTip="腐蚀后再膨胀，恢复真实缺陷尺寸并把被腐蚀打断的划痕重新连成一条。建议不小于腐蚀核。"/>
 
-                            <TextBlock Text="最小面积占比(%) 0.05~5" Style="{StaticResource ParamLabel}"/>
-                            <TextBox x:Name="TbDefectMinArea" Text="0.4" Margin="0,0,0,4" FontSize="10.5"
-                     TextChanged="DefectParam_Changed"
-                     ToolTip="小于模板面积该百分比的连通区被忽略，用来滤掉零星噪点。"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
+                                <TextBlock Text="最小面积占比(%) 0.001~50" Style="{StaticResource CompactText}" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="TbDefectMinAreaVal" Text="0.40" Margin="4,0,0,3" FontSize="10.5" FontWeight="Bold" Foreground="#FF2E7D32"/>
+                            </StackPanel>
+                            <Slider x:Name="SldDefectMinArea" Minimum="0.001" Maximum="50" Value="0.4" TickFrequency="0.05"
+                                    IsSnapToTickEnabled="True" LargeChange="1" SmallChange="0.05" Margin="0,0,0,4"
+                                    ValueChanged="DefectParam_Changed"
+                                    ToolTip="小于模板面积该百分比的连通区被忽略，用来滤掉零星噪点。"/>
 
-                            <TextBlock Text="全局亮度阈值 5~80" Style="{StaticResource ParamLabel}"/>
-                            <TextBox x:Name="TbDefectGlobal" Text="28" Margin="0,0,0,2" FontSize="10.5"
-                     TextChanged="DefectParam_Changed"
-                     ToolTip="没有局部缺陷但整体平均差值超过该值时，标一个“亮度/对比度异常”小徽标。调高可关闭该提示。"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
+                                <TextBlock Text="全局亮度阈值 1~254" Style="{StaticResource CompactText}" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="TbDefectGlobalVal" Text="28" Margin="4,0,0,3" FontSize="10.5" FontWeight="Bold" Foreground="#FF2E7D32"/>
+                            </StackPanel>
+                            <Slider x:Name="SldDefectGlobal" Minimum="1" Maximum="254" Value="28" TickFrequency="1"
+                                    IsSnapToTickEnabled="True" LargeChange="10" SmallChange="1" Margin="0,0,0,2"
+                                    ValueChanged="DefectParam_Changed"
+                                    ToolTip="没有局部缺陷但整体平均差值超过该值时，标一个“亮度/对比度异常”小徽标。调高可关闭该提示。"/>
 
-                            <!--<Button x:Name="BtnDefectReset" Content="恢复默认参数" Height="24" Margin="0,5,0,0" FontSize="10.5"
+                            <Button x:Name="BtnDefectReset" Content="恢复默认参数" Height="24" Margin="0,5,0,0" FontSize="10.5"
                     Click="BtnDefectReset_Click"
-                    ToolTip="把上面的缺陷参数恢复成默认值"/>-->
+                    ToolTip="把上面的缺陷参数恢复成默认值"/>
                         </StackPanel>
                     </Border>
 

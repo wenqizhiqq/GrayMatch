@@ -20,6 +20,7 @@ public class RotatedTemplateMatcher : IDisposable
 
     public Mat Source => _source ?? throw new InvalidOperationException("Source image not loaded.");
     public Mat? Template => _template;
+    public bool HasSource => _sourceGray != null;
 
     /// <summary>
     /// 轮廓匹配开关。开启后，匹配改用「边缘梯度图」（Sobel 梯度幅度，归一化到 0-255

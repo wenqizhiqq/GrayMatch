@@ -14,6 +14,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Threading;
 using OpenCvSharp;
 
 // OpenCvSharp 与 System.Windows 都导出 Window / Point，这里用别名消歧义，
@@ -27,6 +28,9 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 {
     private readonly RotatedTemplateMatcher _matcher = new();
     private CancellationTokenSource? _matchCts;
+    private readonly DispatcherTimer _autoMatchTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(1000) };
+    private bool _autoMatchDirty;
+    private bool _suppressAutoMatch;
     private CancellationTokenSource? _selCts;
     private readonly SemaphoreSlim _loadSem = new(1, 1);
 
@@ -127,24 +131,71 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         BtnMatch.Click += async (_, _) => await RunMatchAsync();
         BtnClear.Click += (_, _) => ClearResults();
 
-        TbAngleStart.TextChanged += (_, _) => { UpdateInfluenceFactors(); SaveSettings(); };
-        TbAngleEnd.TextChanged += (_, _) => { UpdateInfluenceFactors(); SaveSettings(); };
-        TbAngleStep.TextChanged += (_, _) => { UpdateInfluenceFactors(); SaveSettings(); };
-        TbThreshold.TextChanged += (_, _) => { UpdateInfluenceFactors(); SaveSettings(); };
-        TbOverlap.TextChanged += (_, _) => { UpdateInfluenceFactors(); SaveSettings(); };
-        TbTopN.TextChanged += (_, _) => { UpdateInfluenceFactors(); SaveSettings(); };
-        CmbPyramid.SelectionChanged += (_, _) => { UpdateInfluenceFactors(); SaveSettings(); };
+        SldAngleStart.ValueChanged += MatchParam_Changed;
+        SldAngleEnd.ValueChanged += MatchParam_Changed;
+        SldAngleStep.ValueChanged += MatchParam_Changed;
+        SldThreshold.ValueChanged += MatchParam_Changed;
+        SldOverlap.ValueChanged += MatchParam_Changed;
+        SldTopN.ValueChanged += MatchParam_Changed;
+        SldPyramid.ValueChanged += MatchParam_Changed;
         ChkDefect.Checked += ChkDefect_Changed;
         ChkDefect.Unchecked += ChkDefect_Changed;
         ChkContour.Checked += ChkContour_Changed;
         ChkContour.Unchecked += ChkContour_Changed;
         ChkDense.Checked += ChkDense_Changed;
         ChkDense.Unchecked += ChkDense_Changed;
+
+        _autoMatchTimer.Tick += AutoMatchTimer_Tick;
     }
 
     private void ChkDense_Changed(object sender, RoutedEventArgs e)
     {
         SaveSettings();
+    }
+
+    private void MatchParam_Changed(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (_suppressAutoMatch) return;
+        if (TbAngleStartVal != null) TbAngleStartVal.Text = SldAngleStart.Value.ToString("0");
+        if (TbAngleEndVal != null) TbAngleEndVal.Text = SldAngleEnd.Value.ToString("0");
+        if (TbAngleStepVal != null) TbAngleStepVal.Text = SldAngleStep.Value.ToString("0.0");
+        if (TbThresholdVal != null) TbThresholdVal.Text = SldThreshold.Value.ToString("0.00");
+        if (TbOverlapVal != null) TbOverlapVal.Text = SldOverlap.Value.ToString("0.00");
+        if (TbTopNVal != null) TbTopNVal.Text = SldTopN.Value.ToString("0");
+        if (TbPyramidVal != null) TbPyramidVal.Text = SldPyramid.Value.ToString("0");
+        UpdateInfluenceFactors();
+        SaveSettings();
+        ScheduleAutoMatch();
+    }
+
+    private void ScheduleAutoMatch()
+    {
+        _autoMatchDirty = true;
+        if (!_autoMatchTimer.IsEnabled)
+            _autoMatchTimer.Start();
+    }
+
+    private void AutoMatchTimer_Tick(object? sender, EventArgs e)
+    {
+        if (!_autoMatchDirty) { _autoMatchTimer.Stop(); return; }
+        if (!BtnMatch.IsEnabled) return; // 正在匹配（手动或上一轮自动），等下一拍
+        if (!_matcher.HasSource || _matcher.Template == null) { _autoMatchDirty = false; _autoMatchTimer.Stop(); return; }
+        _autoMatchDirty = false;
+        _ = RunMatchAsync(silent: true);
+    }
+
+    private void BtnMatchDefaults_Click(object sender, RoutedEventArgs e)
+    {
+        _suppressAutoMatch = true;
+        SldAngleStart.Value = -45;
+        SldAngleEnd.Value = 45;
+        SldAngleStep.Value = 2;
+        SldThreshold.Value = 0.30;
+        SldOverlap.Value = 0.25;
+        SldTopN.Value = 20;
+        SldPyramid.Value = 3;
+        _suppressAutoMatch = false;
+        ScheduleAutoMatch();
     }
 
     #endregion
@@ -333,11 +384,18 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
     #region Matching
 
-    private async Task RunMatchAsync()
+    private async Task RunMatchAsync(bool silent = false)
     {
+        _autoMatchDirty = false;
+        if (!_matcher.HasSource)
+        {
+            if (!silent) MessageBox.Show("请先打开一张图片。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
         if (_matcher.Template == null)
         {
-            MessageBox.Show("请先创建模板。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+            if (!silent) MessageBox.Show("请先创建模板。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
 
@@ -346,15 +404,14 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         _matchCts = new CancellationTokenSource();
         var token = _matchCts.Token;
 
-        if (!int.TryParse((CmbPyramid.SelectedItem as ComboBoxItem)?.Content?.ToString(), out int pyramid))
-            pyramid = 4;
+        int pyramid = (int)System.Math.Round(SldPyramid.Value);
 
-        double start = Parse(TbAngleStart.Text, -180);
-        double end = Parse(TbAngleEnd.Text, 180);
-        double step = Parse(TbAngleStep.Text, 1);
-        double threshold = Parse(TbThreshold.Text, 0.5);
-        double overlap = Parse(TbOverlap.Text, 0.25);
-        int topN = (int)Parse(TbTopN.Text, 200);
+        double start = SldAngleStart.Value;
+        double end = SldAngleEnd.Value;
+        double step = SldAngleStep.Value;
+        double threshold = SldThreshold.Value;
+        double overlap = SldOverlap.Value;
+        int topN = (int)System.Math.Round(SldTopN.Value);
 
         StatusText = "正在查找，请稍候...";
 
@@ -689,13 +746,13 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     // 所有匹配/轮廓参数自动保存自动载入；JSON 仅存 UI 控件的值，启动时回填控件即可。
     private sealed class MatchSettings
     {
-        public string AngleStart { get; set; } = "-180";
-        public string AngleEnd { get; set; } = "180";
-        public string AngleStep { get; set; } = "1";
-        public string Threshold { get; set; } = "0.5";
-        public string Overlap { get; set; } = "0.25";
-        public string TopN { get; set; } = "200";
-        public int PyramidIndex { get; set; } = 3;
+        public double AngleStart { get; set; } = -45;
+        public double AngleEnd { get; set; } = 45;
+        public double AngleStep { get; set; } = 2;
+        public double Threshold { get; set; } = 0.30;
+        public double Overlap { get; set; } = 0.25;
+        public double TopN { get; set; } = 20;
+        public int PyramidLevel { get; set; } = 3;
         public bool Contour { get; set; }
         public double ContourBlur { get; set; } = 1;
         public int ContourThreshold { get; set; } = 30;
@@ -711,13 +768,13 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             Directory.CreateDirectory(AppDataDir);
             var s = new MatchSettings
             {
-                AngleStart = TbAngleStart?.Text ?? "-180",
-                AngleEnd = TbAngleEnd?.Text ?? "180",
-                AngleStep = TbAngleStep?.Text ?? "1",
-                Threshold = TbThreshold?.Text ?? "0.5",
-                Overlap = TbOverlap?.Text ?? "0.25",
-                TopN = TbTopN?.Text ?? "200",
-                PyramidIndex = CmbPyramid?.SelectedIndex ?? 3,
+                AngleStart = SldAngleStart?.Value ?? -45,
+                AngleEnd = SldAngleEnd?.Value ?? 45,
+                AngleStep = SldAngleStep?.Value ?? 2,
+                Threshold = SldThreshold?.Value ?? 0.30,
+                Overlap = SldOverlap?.Value ?? 0.25,
+                TopN = SldTopN?.Value ?? 20,
+                PyramidLevel = (int)System.Math.Round(SldPyramid?.Value ?? 3),
                 Contour = ChkContour?.IsChecked == true,
                 ContourBlur = SldContourBlur?.Value ?? 1,
                 ContourThreshold = (int)(SldContourThreshold?.Value ?? 30),
@@ -734,17 +791,25 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     {
         try
         {
+            _suppressAutoMatch = true;
             if (!File.Exists(SettingsFile)) return;
             var s = JsonSerializer.Deserialize<MatchSettings>(File.ReadAllText(SettingsFile));
             if (s == null) return;
 
-            TbAngleStart.Text = s.AngleStart;
-            TbAngleEnd.Text = s.AngleEnd;
-            TbAngleStep.Text = s.AngleStep;
-            TbThreshold.Text = s.Threshold;
-            TbOverlap.Text = s.Overlap;
-            TbTopN.Text = s.TopN;
-            CmbPyramid.SelectedIndex = s.PyramidIndex;
+            SldAngleStart.Value = s.AngleStart;
+            SldAngleEnd.Value = s.AngleEnd;
+            SldAngleStep.Value = s.AngleStep;
+            SldThreshold.Value = s.Threshold;
+            SldOverlap.Value = s.Overlap;
+            SldTopN.Value = s.TopN;
+            SldPyramid.Value = s.PyramidLevel;
+            TbAngleStartVal.Text = s.AngleStart.ToString("0");
+            TbAngleEndVal.Text = s.AngleEnd.ToString("0");
+            TbAngleStepVal.Text = s.AngleStep.ToString("0.0");
+            TbThresholdVal.Text = s.Threshold.ToString("0.00");
+            TbOverlapVal.Text = s.Overlap.ToString("0.00");
+            TbTopNVal.Text = s.TopN.ToString("0");
+            TbPyramidVal.Text = s.PyramidLevel.ToString("0");
             SldContourBlur.Value = s.ContourBlur;
             SldContourThreshold.Value = s.ContourThreshold;
             SldScaleRange.Value = s.ScaleRange;
@@ -765,6 +830,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             if (s.Contour && _matcher.Template != null) RefreshTemplateVisuals();
         }
         catch { /* ignore */ }
+        finally { _suppressAutoMatch = false; }
     }
 
     private void SaveLastFolder()
@@ -883,11 +949,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private void UpdateInfluenceFactors()
     {
         var sb = new StringBuilder();
-        double start = Parse(TbAngleStart.Text, -180);
-        double end = Parse(TbAngleEnd.Text, 180);
-        double step = Parse(TbAngleStep.Text, 1);
-        int pyramid = 4;
-        if (int.TryParse((CmbPyramid.SelectedItem as ComboBoxItem)?.Content?.ToString(), out int p)) pyramid = p;
+        double start = SldAngleStart?.Value ?? -45;
+        double end = SldAngleEnd?.Value ?? 45;
+        double step = SldAngleStep?.Value ?? 2;
+        int pyramid = (int)System.Math.Round(SldPyramid?.Value ?? 3);
 
         int angleCount = (step > 1e-9 && end >= start)
             ? (int)System.Math.Floor((end - start) / step) + 1 : 0;
