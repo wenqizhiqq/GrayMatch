@@ -137,8 +137,6 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         ChkDefect.Unchecked += ChkDefect_Changed;
         ChkContour.Checked += ChkContour_Changed;
         ChkContour.Unchecked += ChkContour_Changed;
-        TbContourThreshold.TextChanged += ContourParam_Changed;
-        TbContourBlur.TextChanged += ContourParam_Changed;
     }
 
     #endregion
@@ -168,8 +166,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         LstImages.ItemsSource = _imageFiles.ConvertAll(Path.GetFileName);
         if (_imageFiles.Count > 0)
         {
-            LstImages.SelectedIndex = 0; // triggers SelectionChanged -> load only (no auto-match)
-            StatusText = $"已打开文件夹：{folder}（共 {_imageFiles.Count} 张图片，切换即载入，不自动匹配）";
+            LstImages.SelectedIndex = 0; // triggers SelectionChanged -> load + auto-match (if template exists)
+            StatusText = $"已打开文件夹：{folder}（共 {_imageFiles.Count} 张图片，点击切换即载入并自动匹配）";
         }
         else
         {
@@ -178,7 +176,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         }
     }
 
-    // 切图只载入+显示，绝不自动匹配 —— 这就是「切图与模板解耦」的关键。
+    // 切图即载入；若已创建模板则自动匹配（满足「点击切换即自动查找」）。
     private async void LstImages_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         await DebouncedSelectAsync();
@@ -197,7 +195,13 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         catch (OperationCanceledException) { return; }
 
         await LoadSourceFromPathAsync(path, token);
-        // 注意：这里故意不调用 RunMatchAsync。匹配请用左侧「开始查找」。
+        token.ThrowIfCancellationRequested();
+
+        // 已创建模板时，切换图片后自动匹配；无模板则不弹窗、只载入。
+        if (_matcher.Template != null)
+        {
+            await RunMatchAsync();
+        }
     }
 
     private async Task LoadSourceFromPathAsync(string path, CancellationToken token)
@@ -633,8 +637,15 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     /// </summary>
     private void ContourParam_Changed(object sender, RoutedEventArgs e)
     {
-        if (!int.TryParse(TbContourThreshold.Text, out int thr)) thr = _matcher.ContourThreshold;
-        if (!double.TryParse(TbContourBlur.Text, out double blur)) blur = _matcher.ContourBlur;
+        // InitializeComponent 设置 Slider.Value 时会先触发 ValueChanged，此时命名字段可能还未赋值。
+        if (SldContourBlur == null || SldContourThreshold == null) return;
+        if (TbContourBlurVal == null || TbContourThresholdVal == null) return;
+
+        double blur = SldContourBlur.Value;
+        int thr = (int)SldContourThreshold.Value;
+        // 同步显示数值
+        TbContourBlurVal.Text = blur.ToString("0");
+        TbContourThresholdVal.Text = thr.ToString();
         _matcher.ContourThreshold = thr;
         _matcher.ContourBlur = blur;
         if (ChkContour.IsChecked == true && _matcher.Template != null)
