@@ -29,7 +29,6 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private CancellationTokenSource? _selCts;
     private readonly SemaphoreSlim _loadSem = new(1, 1);
 
-    private bool _isDrawingRoi;
     private Point _roiStart;
     private int _templateW;
     private int _templateH;
@@ -75,6 +74,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
     private BitmapSource? _templateBitmap;
     public BitmapSource? TemplateBitmap { get => _templateBitmap; set => Set(ref _templateBitmap, value); }
+
+    // 轮廓匹配时，模板边缘形状的绿色叠加图（与匹配结果绿框共用同一 XAML 坐标系，保证对齐/可见）。
+    private BitmapSource? _templateContourOverlay;
+    public BitmapSource? TemplateContourOverlay { get => _templateContourOverlay; set => Set(ref _templateContourOverlay, value); }
 
     public BulkObservableCollection<MatchResult> Results { get; } = new();
     public BulkObservableCollection<DefectResult> Defects { get; } = new();
@@ -132,6 +135,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         CmbPyramid.SelectionChanged += (_, _) => UpdateInfluenceFactors();
         ChkDefect.Checked += ChkDefect_Changed;
         ChkDefect.Unchecked += ChkDefect_Changed;
+        ChkContour.Checked += ChkContour_Changed;
+        ChkContour.Unchecked += ChkContour_Changed;
+        TbContourThreshold.TextChanged += ContourParam_Changed;
+        TbContourBlur.TextChanged += ContourParam_Changed;
     }
 
     #endregion
@@ -251,13 +258,30 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             MessageBox.Show("请先打开图像。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
-        _isDrawingRoi = true;
-        StatusText = "在图片上按住鼠标拖一个框，框住要找的目标（松手即成为模板）";
+        // 任何时候都能画框；点「创建模板」才把当前框存成模板。
+        int x = (int)Math.Max(0, RoiLeft);
+        int y = (int)Math.Max(0, RoiTop);
+        int w = (int)Math.Min(ImageWidth - x, RoiWidth);
+        int h = (int)Math.Min(ImageHeight - y, RoiHeight);
+        if (w < 8 || h < 8)
+        {
+            MessageBox.Show("请先在图片上拖一个框选好要找的目标，再点「创建模板」。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+        _matcher.SetTemplateFromRoi(new OpenCvSharp.Rect(x, y, w, h));
+        var tpl = _matcher.Template!;
+        TemplateSizeText = $"{tpl.Width} × {tpl.Height}";
+        _templateW = tpl.Width;
+        _templateH = tpl.Height;
+        RefreshTemplateVisuals();   // 轮廓模式开时左侧显示绿色轮廓，关时只显示灰度模板
+        _ = SaveTemplateAsync(tpl);
+        UpdateInfluenceFactors();
+        StatusText = $"模板已做好，大小 {w}×{h}（显示在左侧）。点「开始查找」在该图上找目标";
     }
 
     private async void ImageGrid_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        if (!_isDrawingRoi || SourceBitmap == null) return;
+        if (SourceBitmap == null) return;     // 任何时候都允许画框，不依赖「创建模板」按钮
         _roiStart = e.GetPosition(ImageGrid);
         RoiLeft = _roiStart.X;
         RoiTop = _roiStart.Y;
@@ -268,7 +292,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
     private void ImageGrid_MouseMove(object sender, MouseEventArgs e)
     {
-        if (!_isDrawingRoi || e.LeftButton != MouseButtonState.Pressed || SourceBitmap == null) return;
+        if (SourceBitmap == null || e.LeftButton != MouseButtonState.Pressed) return;
         var pt = e.GetPosition(ImageGrid);
         double x = Math.Min(_roiStart.X, pt.X);
         double y = Math.Min(_roiStart.Y, pt.Y);
@@ -280,31 +304,15 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
     private void ImageGrid_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
     {
-        if (!_isDrawingRoi || SourceBitmap == null) return;
-        _isDrawingRoi = false;
+        if (SourceBitmap == null) return;
         ImageGrid.ReleaseMouseCapture();
 
-        int x = (int)Math.Max(0, RoiLeft);
-        int y = (int)Math.Max(0, RoiTop);
-        int w = (int)Math.Min(ImageWidth - x, RoiWidth);
-        int h = (int)Math.Min(ImageHeight - y, RoiHeight);
-
-        if (w < 8 || h < 8)
-        {
-            ClearRoi();
-            StatusText = "框选的模板太小了，请框大一点";
-            return;
-        }
-
-        _matcher.SetTemplateFromRoi(new OpenCvSharp.Rect(x, y, w, h));
-        var tpl = _matcher.Template!;
-        TemplateSizeText = $"{tpl.Width} × {tpl.Height}";
-        _templateW = tpl.Width;
-        _templateH = tpl.Height;
-        TemplateBitmap = MatToBitmapSource(tpl);
-        _ = SaveTemplateAsync(tpl);
-        UpdateInfluenceFactors();
-        StatusText = $"模板已做好，大小 {w}×{h}（显示在左侧）。点「开始查找」在该图上找目标";
+        // 松手只是确认框选；模板要等用户点「创建模板」才生成。
+        int w = (int)RoiWidth, h = (int)RoiHeight;
+        if (w >= 8 && h >= 8)
+            StatusText = "框已选好：点「创建模板」把它存为模板（再拖一次可重新框选）";
+        else
+            StatusText = "框太小，请重新拖一个更大的框，然后点「创建模板」";
     }
 
     #endregion
@@ -340,6 +348,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         try
         {
             int dense = ChkDense.IsChecked == true ? 1 : 0;
+            _matcher.UseContour = ChkContour.IsChecked == true;
             results = await Task.Run(() => _matcher.Match(pyramid, start, end, step, threshold, overlap, topN, dense), token);
         }
         catch (OperationCanceledException)
@@ -360,6 +369,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         Results.AddRange(results);
 
         Defects.Clear();
+        // 绿色轮廓线改为 XAML 叠加层（与绿框共用坐标系），这里只负责红色缺陷像素与清屏。
         if (_defectEnabled)
         {
             var defects = await Task.Run(() => _matcher.DetectDefects(results), token);
@@ -367,14 +377,15 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             Defects.AddRange(defects);
             DefectSummaryText = BuildDefectSummary(defects);
             RefreshDisplayBitmap(defects);   // 画红
-            _paintedRed = true;
+            _paintedRed = defects.Count > 0;
             StatusText = $"查找完成：共找到 {results.Count} 个目标，其中 {defects.Count} 处有缺陷，用时 {_matcher.LastMatchMs:F1} 毫秒";
         }
         else
         {
             DefectSummaryText = "-";
-            // 只有上一轮画过红、本轮没画，才需要重绘清红；否则不重绘整张图（省一次大拷贝）
-            if (_paintedRed) { RefreshDisplayBitmap(); _paintedRed = false; }
+            // 上一轮画过红、本轮没画，才需要重绘清红（省一次大拷贝）。绿色轮廓由 XAML 叠加层处理。
+            if (_paintedRed) RefreshDisplayBitmap(null);
+            _paintedRed = false;
             StatusText = $"查找完成：共找到 {results.Count} 个目标，用时 {_matcher.LastMatchMs:F1} 毫秒";
         }
         MatchMsText = $"{_matcher.LastMatchMs:F1} ms";
@@ -402,6 +413,16 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         _defectEnabled = ChkDefect.IsChecked == true;
         DefectSummaryText = "-";
         StatusText = _defectEnabled ? "已开启缺陷检查" : "已关闭缺陷检查";
+    }
+
+    private void ChkContour_Changed(object sender, RoutedEventArgs e)
+    {
+        bool on = ChkContour.IsChecked == true;
+        _matcher.UseContour = on;
+        // 重新生成轮廓（含当前参数），并刷新左侧模板预览与绿色叠加图
+        _matcher.RecomputeContours();
+        RefreshTemplateVisuals();
+        StatusText = on ? "已开启轮廓匹配（用边缘梯度图，抗光照变化；目标会用绿色线条画出模板形状）" : "已关闭轮廓匹配（用灰度图）";
     }
 
     private static string BuildDefectSummary(List<DefectResult> defects)
@@ -442,32 +463,39 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             Marshal.Copy(row, 0, back + y * dstStride, w * 3);
         }
 
-        if (defects != null && defects.Count > 0)
+        bool hasOverlay = (defects != null && defects.Count > 0);
+        if (hasOverlay)
         {
             var px = new byte[dstStride * h];
             Marshal.Copy(back, px, 0, px.Length);
-            foreach (var d in defects)
+
+            // 红色：缺陷像素
+            if (defects != null && defects.Count > 0)
             {
-                if (d.Pixels == null || d.Pw <= 0 || d.Ph <= 0) continue;
-                double phi = -d.Angle * System.Math.PI / 180.0;
-                double cosv = System.Math.Cos(phi), sinv = System.Math.Sin(phi);
-                double tw = d.Tw, th = d.Th;
-                for (int ly = 0; ly < d.Ph; ly++)
+                foreach (var d in defects)
                 {
-                    int baseOff = ly * d.Pw;
-                    for (int lx = 0; lx < d.Pw; lx++)
+                    if (d.Pixels == null || d.Pw <= 0 || d.Ph <= 0) continue;
+                    double phi = -d.Angle * System.Math.PI / 180.0;
+                    double cosv = System.Math.Cos(phi), sinv = System.Math.Sin(phi);
+                    double tw = d.Tw, th = d.Th;
+                    for (int ly = 0; ly < d.Ph; ly++)
                     {
-                        if (d.Pixels[baseOff + lx] == 0) continue;
-                        double ux = lx - tw / 2.0;
-                        double uy = ly - th / 2.0;
-                        int ix = (int)System.Math.Round(d.CenterX + (ux * cosv - uy * sinv));
-                        int iy = (int)System.Math.Round(d.CenterY + (ux * sinv + uy * cosv));
-                        if (ix < 0 || iy < 0 || ix >= w || iy >= h) continue;
-                        int idx = iy * dstStride + ix * 3;
-                        px[idx] = 0; px[idx + 1] = 0; px[idx + 2] = 255;
+                        int baseOff = ly * d.Pw;
+                        for (int lx = 0; lx < d.Pw; lx++)
+                        {
+                            if (d.Pixels[baseOff + lx] == 0) continue;
+                            double ux = lx - tw / 2.0;
+                            double uy = ly - th / 2.0;
+                            int ix = (int)System.Math.Round(d.CenterX + (ux * cosv - uy * sinv));
+                            int iy = (int)System.Math.Round(d.CenterY + (ux * sinv + uy * cosv));
+                            if (ix < 0 || iy < 0 || ix >= w || iy >= h) continue;
+                            int idx = iy * dstStride + ix * 3;
+                            px[idx] = 0; px[idx + 1] = 0; px[idx + 2] = 255;
+                        }
                     }
                 }
             }
+
             Marshal.Copy(px, 0, back, px.Length);
         }
 
@@ -492,6 +520,129 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         wb.AddDirtyRect(new Int32Rect(0, 0, w, h));
         wb.Unlock();
         return wb;
+    }
+
+    /// <summary>
+    /// 把模板边缘二值掩码渲染成一张「透明底 + 绿色线条」的小图（模板尺寸），
+    /// 供 XAML 叠加层在每个匹配结果上按角度旋转显示。与绿框共用同一坐标系，保证对齐可见。
+    /// 轮廓模式关闭或还没建模板时返回 null（不显示）。
+    /// </summary>
+    private BitmapSource? BuildContourOverlay()
+    {
+        var mask = _matcher.TemplateContourMask;
+        int w = _matcher.TemplateContourW, h = _matcher.TemplateContourH;
+        if (mask == null || w <= 0 || h <= 0) return null;
+        var wb = new WriteableBitmap(w, h, 96, 96, PixelFormats.Bgra32, null);
+        wb.Lock();
+        int stride = wb.BackBufferStride;
+        var px = new byte[stride * h];
+        for (int y = 0; y < h; y++)
+        {
+            int baseOff = y * w;
+            for (int x = 0; x < w; x++)
+            {
+                if (mask[baseOff + x] == 0) continue;
+                int idx = y * stride + x * 4;
+                px[idx] = 0; px[idx + 1] = 255; px[idx + 2] = 0; px[idx + 3] = 255; // 绿、不透明
+            }
+        }
+        Marshal.Copy(px, 0, wb.BackBuffer, px.Length);
+        wb.AddDirtyRect(new Int32Rect(0, 0, w, h));
+        wb.Unlock();
+        wb.Freeze();
+        return wb;
+    }
+
+    /// <summary>
+    /// 把灰度模板渲染为「灰度底 + 绿色轮廓线条」的预览图（Bgr24），用于左侧模板预览。
+    /// 勾选轮廓匹配时显示，调参（阈值/平滑）时会实时刷新。
+    /// </summary>
+    private BitmapSource? BuildTemplateContourPreview()
+    {
+        var tpl = _matcher.Template;
+        if (tpl == null || tpl.Empty()) return null;
+        var mask = _matcher.TemplateContourMask;
+        int w = tpl.Width, h = tpl.Height;
+        var wb = new WriteableBitmap(w, h, 96, 96, PixelFormats.Bgr24, null);
+        wb.Lock();
+        int srcStride = (int)tpl.Step();
+        int dstStride = wb.BackBufferStride;
+        var px = new byte[dstStride * h];
+        for (int y = 0; y < h; y++)
+        {
+            int srow = y * srcStride;
+            int drow = y * dstStride;
+            for (int x = 0; x < w; x++)
+            {
+                byte g = Marshal.ReadByte(tpl.Data + srow + x);
+                int idx = drow + x * 3;
+                px[idx] = g; px[idx + 1] = g; px[idx + 2] = g;
+            }
+        }
+        if (mask != null)
+        {
+            for (int y = 0; y < h; y++)
+            {
+                int baseOff = y * w;
+                int drow = y * dstStride;
+                for (int x = 0; x < w; x++)
+                {
+                    if (mask[baseOff + x] == 0) continue;
+                    int idx = drow + x * 3;
+                    px[idx] = 0; px[idx + 1] = 255; px[idx + 2] = 0;   // 绿
+                }
+            }
+        }
+        Marshal.Copy(px, 0, wb.BackBuffer, px.Length);
+        wb.AddDirtyRect(new Int32Rect(0, 0, w, h));
+        wb.Unlock();
+        wb.Freeze();
+        return wb;
+    }
+
+    /// <summary>
+    /// 根据是否勾选「轮廓匹配」刷新左侧模板预览：
+    /// - 轮廓模式：显示灰度模板 + 绿色轮廓线条（TemplateBitmap），并重建用于匹配结果叠加的绿色轮廓图；
+    /// - 灰度模式：只显示灰度模板，清空绿色轮廓叠加。
+    /// 调参（阈值/平滑）时也会调用，使绿色轮廓实时刷新到模板图片上。
+    /// </summary>
+    private void RefreshTemplateVisuals()
+    {
+        var tpl = _matcher.Template;
+        if (tpl == null)
+        {
+            TemplateBitmap = null;
+            TemplateContourOverlay = null;
+            return;
+        }
+        if (ChkContour.IsChecked == true)
+        {
+            TemplateBitmap = BuildTemplateContourPreview();
+            TemplateContourOverlay = BuildContourOverlay();
+        }
+        else
+        {
+            TemplateBitmap = MatToBitmapSource(tpl);
+            TemplateContourOverlay = null;
+        }
+    }
+
+    /// <summary>
+    /// 轮廓匹配参数（阈值/平滑）变化时调用：把参数推入 matcher，重新生成边缘掩码，
+    /// 并实时刷新左侧模板预览的绿色轮廓。仅在已勾选轮廓匹配且已有模板时生效。
+    /// </summary>
+    private void ContourParam_Changed(object sender, RoutedEventArgs e)
+    {
+        if (!int.TryParse(TbContourThreshold.Text, out int thr)) thr = _matcher.ContourThreshold;
+        if (!double.TryParse(TbContourBlur.Text, out double blur)) blur = _matcher.ContourBlur;
+        _matcher.ContourThreshold = thr;
+        _matcher.ContourBlur = blur;
+        if (ChkContour.IsChecked == true && _matcher.Template != null)
+        {
+            _matcher.RecomputeContours();
+            RefreshTemplateVisuals();
+            StatusText = $"轮廓参数已更新：平滑={blur}，阈值={thr}（越大边越少）";
+        }
     }
 
     #endregion
@@ -530,10 +681,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 if (t != null && !t.Empty())
                 {
                     _matcher.SetTemplate(t);
-                    TemplateBitmap = MatToBitmapSource(t);
                     TemplateSizeText = $"{t.Width} × {t.Height}";
                     _templateW = t.Width;
                     _templateH = t.Height;
+                    RefreshTemplateVisuals();
                     UpdateInfluenceFactors();
                 }
             }

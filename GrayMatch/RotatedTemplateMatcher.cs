@@ -9,9 +9,72 @@ public class RotatedTemplateMatcher : IDisposable
     private Mat? _source;
     private Mat? _template;
     private Mat? _sourceGray;
+    private Mat? _sourceContour;   // 轮廓/梯度图（用于轮廓匹配模式）
+    private Mat? _templateContour;
+    private byte[]? _templateContourMask;   // 模板边缘二值掩码（用于 UI 画绿色轮廓线）
+    private int _templateContourMaskW, _templateContourMaskH;
 
     public Mat Source => _source ?? throw new InvalidOperationException("Source image not loaded.");
     public Mat? Template => _template;
+
+    /// <summary>
+    /// 轮廓匹配开关。开启后，匹配改用「边缘梯度图」（Sobel 梯度幅度，归一化到 0-255
+    /// 单通道）代替灰度图，对光照变化、前景/背景灰度接近、纯形状轮廓（与纹理无关）
+    /// 的图案更鲁棒。缺陷检测仍基于灰度差异，不受影响。
+    /// setter 会按需生成/释放轮廓图，避免重复计算。
+    /// </summary>
+    private bool _useContour;
+    public bool UseContour
+    {
+        get => _useContour;
+        set
+        {
+            if (_useContour == value) return;
+            _useContour = value;
+            if (value)
+            {
+                if (_sourceGray != null) { _sourceContour?.Dispose(); _sourceContour = MakeContour(_sourceGray); }
+                if (_template != null) { _templateContour?.Dispose(); _templateContour = MakeContour(_template); }
+            }
+            else
+            {
+                _sourceContour?.Dispose(); _sourceContour = null;
+                _templateContour?.Dispose(); _templateContour = null;
+            }
+        }
+    }
+
+    /// <summary>
+    /// 轮廓匹配参数：Canny 低阈值（1-254）。值越大保留的边越少（越严格）。
+    /// 影响显示的绿色轮廓，以及（开启轮廓匹配时）边缘掩码的生成。默认 30。
+    /// </summary>
+    private int _contourThreshold = 30;
+    public int ContourThreshold
+    {
+        get => _contourThreshold;
+        set
+        {
+            if (value < 1) value = 1;
+            if (value > 254) value = 254;
+            _contourThreshold = value;
+        }
+    }
+
+    /// <summary>
+    /// 轮廓匹配参数：高斯预平滑 sigma（0 = 不模糊，上限 12）。会同时作用于
+    /// 匹配用的梯度图与边缘掩码，抑制噪声带来的伪边。默认 1。
+    /// </summary>
+    private double _contourBlur = 1.0;
+    public double ContourBlur
+    {
+        get => _contourBlur;
+        set
+        {
+            if (value < 0) value = 0;
+            if (value > 12) value = 12;
+            _contourBlur = value;
+        }
+    }
 
     /// <summary>Pure matching time (ms) of the last Match call, excluding template
     /// cache construction — reported by the native layer so template creation and
@@ -32,6 +95,7 @@ public class RotatedTemplateMatcher : IDisposable
 
         _sourceGray = new Mat();
         Cv2.CvtColor(_source, _sourceGray, ColorConversionCodes.BGR2GRAY);
+        if (UseContour) _sourceContour = MakeContour(_sourceGray);
     }
 
     public void SetSource(Mat image)
@@ -51,12 +115,16 @@ public class RotatedTemplateMatcher : IDisposable
         _template?.Dispose();
         _template = new Mat(_sourceGray, roi);
         _template = _template.Clone();
+        if (UseContour) _templateContour = MakeContour(_template);
+        ComputeTemplateContourMask();
     }
 
     public void SetTemplate(Mat templateGray)
     {
         _template?.Dispose();
         _template = templateGray.Clone();
+        if (UseContour) _templateContour = MakeContour(_template);
+        ComputeTemplateContourMask();
     }
 
     /// <summary>
@@ -75,6 +143,10 @@ public class RotatedTemplateMatcher : IDisposable
     {
         if (_sourceGray == null || _template == null)
             throw new InvalidOperationException("Source and template must be set before matching.");
+
+        // 轮廓匹配：用梯度幅度图代替灰度图喂给 native 的 NCC（内存布局一致，无需改 C++）。
+        var srcMatch = (UseContour && _sourceContour != null) ? _sourceContour : _sourceGray;
+        var tplMatch = (UseContour && _templateContour != null) ? _templateContour : _template;
 
         IntPtr handle;
         try
@@ -102,8 +174,8 @@ public class RotatedTemplateMatcher : IDisposable
 
         try
         {
-            int s = gm_set_source(handle, _sourceGray.Data, _sourceGray.Width, _sourceGray.Height, (int)_sourceGray.Step(), 1);
-            int t = gm_set_template(handle, _template.Data, _template.Width, _template.Height, (int)_template.Step(), 1);
+            int s = gm_set_source(handle, srcMatch.Data, srcMatch.Width, srcMatch.Height, (int)srcMatch.Step(), 1);
+            int t = gm_set_template(handle, tplMatch.Data, tplMatch.Width, tplMatch.Height, (int)tplMatch.Step(), 1);
             if (s != 0 || t != 0)
                 throw new InvalidOperationException("Failed to set source/template in native matcher.");
 
@@ -460,19 +532,137 @@ public class RotatedTemplateMatcher : IDisposable
 
     #endregion
 
+    /// <summary>
+    /// 由灰度图生成「轮廓/边缘」图：Sobel 梯度幅度（CV_32F）取模后归一化到 0-255 的
+    /// 单通道 8 位图。归一化保证了与灰度图完全相同的内存布局（单通道、行连续），
+    /// 因此 native 的 NCC 路径无需任何改动即可直接使用，且对光照变化更鲁棒。
+    /// </summary>
+    public byte[]? TemplateContourMask => _templateContourMask;
+    public int TemplateContourW => _templateContourMaskW;
+    public int TemplateContourH => _templateContourMaskH;
+
+    /// <summary>
+    /// 由灰度模板生成「边缘二值掩码」：Canny 边缘检测，输出 1/0 的掩码（1 = 边缘像素）。
+    /// 供 UI 在轮廓匹配模式下把模板形状用绿色线条画到每个匹配位置上。
+    /// 模板尺寸很小（仅模板大小），开销可忽略。
+    /// </summary>
+    private void ComputeTemplateContourMask()
+    {
+        _templateContourMask = null;
+        _templateContourMaskW = 0;
+        _templateContourMaskH = 0;
+        if (_template == null) return;
+        int w = _template.Width, h = _template.Height;
+        var mask = new byte[w * h];
+
+        // 可选预模糊（轮廓匹配参数之一）：抑制噪声伪边
+        Mat? blurred = null;
+        Mat work = _template;
+        if (_contourBlur > 0)
+        {
+            blurred = new Mat();
+            Cv2.GaussianBlur(_template, blurred, new OpenCvSharp.Size(0, 0), _contourBlur, _contourBlur);
+            work = blurred;
+        }
+
+        // 第一选择：Canny 边缘（更细的线条）。低阈值由轮廓参数控制（越大边越少）。
+        using (var edges = new Mat())
+        {
+            Cv2.Canny(work, edges, _contourThreshold, Math.Max(_contourThreshold * 2.0, _contourThreshold + 5));
+            int count = 0;
+            for (int y = 0; y < h; y++)
+                for (int x = 0; x < w; x++)
+                    if (edges.At<byte>(y, x) != 0) { mask[y * w + x] = 1; count++; }
+
+            // 边缘太少（如低对比模板 / 阈值过高）时回退：用 Sobel 梯度幅度的阈值作为边缘，
+            // 保证轮廓线至少有可见的模板形状。
+            if (count < 5)
+            {
+                using var gx = new Mat();
+                using var gy = new Mat();
+                using var mag = new Mat();
+                Cv2.Sobel(work, gx, MatType.CV_32F, 1, 0, 3);
+                Cv2.Sobel(work, gy, MatType.CV_32F, 0, 1, 3);
+                Cv2.Magnitude(gx, gy, mag);
+                double minv = 0, maxv = 0;
+                Cv2.MinMaxLoc(mag, out minv, out maxv);
+                double thr = maxv * 0.25;
+                if (thr > 1)
+                {
+                    for (int y = 0; y < h; y++)
+                        for (int x = 0; x < w; x++)
+                        {
+                            float v = mag.At<float>(y, x);
+                            if (v >= thr) mask[y * w + x] = 1;
+                        }
+                }
+            }
+        }
+        blurred?.Dispose();
+
+        _templateContourMask = mask;
+        _templateContourMaskW = w;
+        _templateContourMaskH = h;
+    }
+
+    /// <summary>
+    /// 在「平滑 / 阈值」参数变化后调用：刷新模板边缘掩码（绿色轮廓显示用），
+    /// 以及（开启轮廓匹配时）重新生成喂给 native 的梯度图。模板/原图尺寸很小，开销可忽略。
+    /// </summary>
+    public void RecomputeContours()
+    {
+        if (_template != null)
+        {
+            ComputeTemplateContourMask();
+            if (UseContour) { _templateContour?.Dispose(); _templateContour = MakeContour(_template); }
+        }
+        if (UseContour && _sourceGray != null)
+        {
+            _sourceContour?.Dispose();
+            _sourceContour = MakeContour(_sourceGray);
+        }
+    }
+
+    private Mat MakeContour(Mat gray)
+    {
+        // 可选预模糊（轮廓匹配参数之一）
+        Mat? blurred = null;
+        Mat work = gray;
+        if (_contourBlur > 0)
+        {
+            blurred = new Mat();
+            Cv2.GaussianBlur(gray, blurred, new OpenCvSharp.Size(0, 0), _contourBlur, _contourBlur);
+            work = blurred;
+        }
+        using var gx = new Mat();
+        using var gy = new Mat();
+        Cv2.Sobel(work, gx, MatType.CV_32F, 1, 0, 3);
+        Cv2.Sobel(work, gy, MatType.CV_32F, 0, 1, 3);
+        using var mag = new Mat();
+        Cv2.Magnitude(gx, gy, mag);
+        var outp = new Mat();
+        Cv2.Normalize(mag, outp, 0, 255, NormTypes.MinMax, MatType.CV_8U);
+        blurred?.Dispose();
+        return outp;
+    }
+
     private void DisposeSource()
     {
         _source?.Dispose();
         _sourceGray?.Dispose();
+        _sourceContour?.Dispose();
         _source = null;
         _sourceGray = null;
+        _sourceContour = null;
     }
 
     public void Dispose()
     {
         DisposeSource();
         _template?.Dispose();
+        _templateContour?.Dispose();
         _template = null;
+        _templateContour = null;
         GC.SuppressFinalize(this);
     }
 }

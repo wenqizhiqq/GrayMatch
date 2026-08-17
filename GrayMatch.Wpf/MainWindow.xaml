@@ -47,8 +47,8 @@
                 <StackPanel Margin="0,2">
                     <TextBlock Text="使用说明" FontWeight="Bold" FontSize="12" Margin="0,1,0,4"/>
                     <TextBlock Text="1. 点「打开文件夹」选一个放图片的文件夹" Style="{StaticResource CompactText}"/>
-                    <TextBlock Text="2. 点「创建模板」，进入画框模式" Style="{StaticResource CompactText}"/>
-                    <TextBlock Text="3. 在照片上按住鼠标拖一个框，框住你想找的目标（松手即存为模板）" Style="{StaticResource CompactText}"/>
+                    <TextBlock Text="2. 在照片上随时拖一个框，框住你想找的目标（可重复拖框修改）" Style="{StaticResource CompactText}"/>
+                    <TextBlock Text="3. 点「创建模板」，把当前框存成模板并显示在左侧" Style="{StaticResource CompactText}"/>
                     <TextBlock Text="4. 根据需要调整下面的角度范围、相似度等参数" Style="{StaticResource CompactText}"/>
                     <TextBlock Text="5. 点「开始查找」，程序会在图上找出所有相同目标并画绿框" Style="{StaticResource CompactText}"/>
                     <TextBlock Text="6. 点「清除结果」可清掉绿框重新开始（原图和模板还在）" Style="{StaticResource CompactText}"/>
@@ -94,6 +94,25 @@
                     <CheckBox x:Name="ChkDense" Content="密集模式（适合规则阵列）" Margin="0,6,0,2" FontSize="11" IsChecked="False"
                       ToolTip="默认不勾选（快速）：种子上限 24，稀疏/普通图几毫秒（实测 ±45°≈5ms），但规则阵列里的大部分重复目标会被漏检，只保留少量代表。&#10;勾选（规则阵列）：粗扫不限制种子数量，可把焊球阵列等成百上千个相同目标全部检出；代价是密集图上耗时会升到十几毫秒（实测 ±45°≈15ms、全 360°≈38ms）。"/>
                     <TextBlock Text="默认不勾选=快速; 规则阵列/密集图才勾选=全检出(较慢)" Style="{StaticResource CompactText}" Foreground="Gray" Margin="0,0,0,2"/>
+
+                    <CheckBox x:Name="ChkContour" Content="轮廓匹配（抗光照变化，绿色轮廓线）" Margin="0,8,0,2" FontSize="11" IsChecked="False"
+                      ToolTip="勾选后，匹配改用「边缘梯度图」（Sobel 梯度幅度）代替灰度图，对光照变化、前景背景灰度接近、以及纯形状轮廓（与纹理无关）的图案更鲁棒。&#10;找到的每个目标会用绿色轮廓线画出模板的真实形状（绿框照常显示）。&#10;取消勾选则用原灰度图、只画绿框。缺陷检查始终基于灰度差异，不受影响。"/>
+
+                    <!-- 轮廓匹配参数：仅勾选轮廓匹配时可调；调参时左侧模板会实时显示绿色轮廓 -->
+                    <Border BorderBrush="#FFD0D0D0" BorderThickness="1" CornerRadius="3"
+                            Padding="6,4" Margin="0,2,0,4" Background="#FFF5FBF5"
+                            IsEnabled="{Binding ElementName=ChkContour, Path=IsChecked}">
+                        <StackPanel>
+                            <TextBlock Text="轮廓匹配参数" FontWeight="SemiBold" FontSize="11" Margin="0,0,0,2"/>
+                            <TextBlock Text="平滑（预模糊，也影响匹配）" Style="{StaticResource CompactText}"/>
+                            <TextBox x:Name="TbContourBlur" Text="1" Margin="0,0,0,3" FontSize="10.5"
+                                     ToolTip="高斯模糊 sigma：0=不模糊，越大噪声越少但边缘越粗（上限 12）"/>
+                            <TextBlock Text="轮廓阈值（1-254，越大边越少）" Style="{StaticResource CompactText}"/>
+                            <TextBox x:Name="TbContourThreshold" Text="30" Margin="0,0,0,3" FontSize="10.5"
+                                     ToolTip="Canny 低阈值：值越小保留的边越多，值越大只保留最强边缘"/>
+                            <TextBlock Text="调参时左侧模板会实时显示绿色轮廓" Style="{StaticResource CompactText}" Foreground="Gray"/>
+                        </StackPanel>
+                    </Border>
 
                     <Separator Margin="0,8,0,4"/>
 
@@ -243,6 +262,18 @@
                                                 <RotateTransform Angle="{Binding Angle, Converter={StaticResource AngleNegate}}"/>
                                             </Rectangle.RenderTransform>
                                         </Rectangle>
+                                        <!-- 轮廓匹配：模板边缘形状（绿色线条），与绿框共用同一坐标系，按角度旋转 -->
+                                        <Image Canvas.Left="0" Canvas.Top="0"
+                               Width="{Binding TemplateWidth}"
+                               Height="{Binding TemplateHeight}"
+                               Stretch="Fill"
+                               Source="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=TemplateContourOverlay}"
+                               RenderTransformOrigin="0.5,0.5"
+                               IsHitTestVisible="False">
+                                            <Image.RenderTransform>
+                                                <RotateTransform Angle="{Binding Angle, Converter={StaticResource AngleNegate}}"/>
+                                            </Image.RenderTransform>
+                                        </Image>
                                         <TextBlock Canvas.Left="0" Canvas.Top="-38"
                                Foreground="Lime" FontSize="16" FontWeight="Bold"
                                Text="{Binding Score, StringFormat='相似度:{0:F3}'}"/>
