@@ -300,6 +300,9 @@
                                         <TextBlock Canvas.Left="0" Canvas.Top="-20"
                                Foreground="Yellow" FontSize="16" FontWeight="Bold"
                                Text="{Binding Angle, StringFormat='角度:{0:F0}°'}"/>
+                                        <TextBlock Canvas.Left="0" Canvas.Top="-2"
+                               Foreground="Cyan" FontSize="15" FontWeight="Bold"
+                               Text="{Binding Scale, StringFormat='大小:{0:F2}倍'}"/>
                                     </Canvas>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
