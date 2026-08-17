@@ -129,17 +129,22 @@
                                     IsSnapToTickEnabled="True" LargeChange="1" SmallChange="1" Margin="0,0,0,4"
                                     ValueChanged="ContourParam_Changed"
                                     ToolTip="Canny 低阈值：值越小保留的边越多，值越大只保留最强边缘"/>
-                            <StackPanel Orientation="Horizontal" Margin="0,4,0,2">
-                                <TextBlock Text="模板大小倍数（多尺度，0=关）" Style="{StaticResource CompactText}" VerticalAlignment="Center"/>
-                                <TextBlock x:Name="TbScaleRangeVal" Text="0.00" Margin="4,0,0,3" FontSize="10.5" FontWeight="Bold" Foreground="#FF2E7D32"/>
-                            </StackPanel>
-                            <Slider x:Name="SldScaleRange" Minimum="0" Maximum="0.6" Value="0" TickFrequency="0.05"
-                                    IsSnapToTickEnabled="True" LargeChange="0.05" SmallChange="0.05" Margin="0,0,0,4"
-                                    ValueChanged="ContourParam_Changed"
-                                    ToolTip="多尺度匹配范围（模板大小的倍数）：0 关闭；>0 在 [1-值, 1+值] 区间多尺度搜索（如 0.3 ⇒ 模板在 0.7×~1.3× 大小范围都能被找到）"/>
                             <TextBlock Text="拖动滑块时左侧模板会实时显示绿色轮廓" Style="{StaticResource CompactText}" Foreground="Gray"/>
                         </StackPanel>
                     </Border>
+
+                    <!-- 多尺度匹配：全局参数，灰度/轮廓模式均生效 -->
+                    <StackPanel Margin="0,6,0,4">
+                        <TextBlock Text="多尺度匹配（全局，灰度/轮廓均生效）" FontWeight="SemiBold" FontSize="11" Margin="0,0,0,2"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
+                            <TextBlock Text="模板大小倍数（0=关）" Style="{StaticResource CompactText}" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="TbScaleRangeVal" Text="0.00" Margin="4,0,0,3" FontSize="10.5" FontWeight="Bold" Foreground="#FF2E7D32"/>
+                        </StackPanel>
+                        <Slider x:Name="SldScaleRange" Minimum="0" Maximum="0.6" Value="0" TickFrequency="0.05"
+                                IsSnapToTickEnabled="True" LargeChange="0.05" SmallChange="0.05" Margin="0,0,0,4"
+                                ValueChanged="ContourParam_Changed"
+                                ToolTip="多尺度匹配范围（模板大小的倍数）：0 关闭；>0 在 [1-值, 1+值] 区间多尺度搜索（如 0.3 ⇒ 模板在 0.7×~1.3× 大小范围都能被找到）"/>
+                    </StackPanel>
 
                     <Separator Margin="0,8,0,4"/>
 
