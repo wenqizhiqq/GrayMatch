@@ -59,6 +59,11 @@
                   ToolTip="点这里选一个放图片的文件夹（bmp / jpg / png 都支持），选好后用上面的列表切换图片"/>
                     <Button x:Name="BtnCreateTemplate" Content="创建模板" Style="{StaticResource CompactButton}"
                   ToolTip="点这个按钮进入画框模式，然后在图片上拖一个框选中要找的目标（松手即存为模板）"/>
+
+                    <TextBlock Text="模板预览（创建后显示）" Style="{StaticResource ParamLabel}"/>
+                    <Border BorderBrush="Gray" BorderThickness="1" Height="92" Margin="0,0,0,4" Background="White">
+                        <Image Source="{Binding TemplateBitmap}" Stretch="Uniform" Margin="2"/>
+                    </Border>
                     <Separator Margin="0,8,0,4"/>
                     <TextBlock Text="匹配参数" FontWeight="Bold" FontSize="12" Margin="0,1,0,4"/>
 
@@ -98,10 +103,10 @@
                     <CheckBox x:Name="ChkContour" Content="轮廓匹配（抗光照变化，绿色轮廓线）" Margin="0,8,0,2" FontSize="11" IsChecked="False"
                       ToolTip="勾选后，匹配改用「边缘梯度图」（Sobel 梯度幅度）代替灰度图，对光照变化、前景背景灰度接近、以及纯形状轮廓（与纹理无关）的图案更鲁棒。&#10;找到的每个目标会用绿色轮廓线画出模板的真实形状（绿框照常显示）。&#10;取消勾选则用原灰度图、只画绿框。缺陷检查始终基于灰度差异，不受影响。"/>
 
-                    <!-- 轮廓匹配参数：仅勾选轮廓匹配时可调；调参时左侧模板会实时显示绿色轮廓 -->
+                    <!-- 轮廓匹配参数：仅勾选轮廓匹配时才显示；调参时左侧模板会实时显示绿色轮廓 -->
                     <Border BorderBrush="#FFD0D0D0" BorderThickness="1" CornerRadius="3"
                             Padding="6,4" Margin="0,2,0,4" Background="#FFF5FBF5"
-                            IsEnabled="{Binding ElementName=ChkContour, Path=IsChecked}">
+                            Visibility="{Binding ElementName=ChkContour, Path=IsChecked, Converter={StaticResource BoolToVis}}">
                         <StackPanel>
                             <TextBlock Text="轮廓匹配参数" FontWeight="SemiBold" FontSize="11" Margin="0,0,0,2"/>
                             <TextBlock Text="平滑（预模糊，也影响匹配）" Style="{StaticResource CompactText}"/>
@@ -187,11 +192,7 @@
                     <TextBlock Text="图像分辨率" Style="{StaticResource ParamLabel}"/>
                     <TextBlock Text="{Binding ImageSizeText}" Margin="0,0,0,4" FontWeight="SemiBold" FontSize="10.5"/>
                     <TextBlock Text="模板分辨率" Style="{StaticResource ParamLabel}"/>
-                    <TextBlock Text="{Binding TemplateSizeText}" Margin="0,0,0,4" FontWeight="SemiBold" FontSize="10.5"/>
-                    <TextBlock Text="模板预览（创建后显示）" Style="{StaticResource ParamLabel}"/>
-                    <Border BorderBrush="Gray" BorderThickness="1" Height="92" Margin="0,0,0,4" Background="White">
-                        <Image Source="{Binding TemplateBitmap}" Stretch="Uniform" Margin="2"/>
-                    </Border>
+                    <TextBlock Text="{Binding TemplateSizeText}" Margin="0,0,0,4" FontWeight="SemiBold" FontSize="10.5"/> 
                     <TextBlock Text="匹配耗时" Style="{StaticResource ParamLabel}"/>
                     <TextBlock Text="{Binding MatchMsText}" Margin="0,0,0,4" FontWeight="SemiBold" FontSize="10.5"/>
 
