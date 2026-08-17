@@ -1,12 +1,9 @@
 ![image-20260810134835375](README.assets/image-20260810134835375.png)
 <img width="2559" height="1527" alt="0b1fbb199b8e01a9418fd1870b1d18dd" src="https://github.com/user-attachments/assets/28032c15-072f-44e4-bff0-7e3ed5a91ba0" />
-
 <img width="2559" height="1527" alt="a28636f9fc2f4800386981efee61bfa0" src="https://github.com/user-attachments/assets/b4745b47-0db6-4759-95d3-1eb113396504" />
-
-调试图片：
 <img width="1339" height="1038" alt="旋转数字" src="https://github.com/user-attachments/assets/ce4d4047-4d52-40f5-a820-43c625e7b4b6" />
-
 <img width="2848" height="1600" alt="芯片队列" src="https://github.com/user-attachments/assets/b3bc3136-d077-4039-a1ed-40fea856a605" />
+
 WPF+C++ 自研旋转 NCC 模板匹配源码｜工业机器视觉定位｜金字塔多级加速｜OpenMP 并行
 标签
 WPF、NCC 模板匹配、轮廓匹配扩展、缺陷检测、C++ 算法、旋转不变匹配、机器视觉、OpenCV、工控上位机、Mark 点定位、半导体视觉、元器件定位
