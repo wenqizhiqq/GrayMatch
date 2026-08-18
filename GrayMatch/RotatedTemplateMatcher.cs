@@ -209,6 +209,11 @@ public class RotatedTemplateMatcher : IDisposable
             if (_sourceGray == null || _template == null)
                 throw new InvalidOperationException("Source and template must be set before matching.");
 
+            // Contour/edge images lose thin edges after Gaussian pyramid downsampling,
+            // so coarse seeds become unreliable and rotated targets are dropped.
+            // Force the legacy full-resolution two-pass path for contour mode.
+            if (_useContour) pyramidLevels = 0;
+
             if (_scaleRange <= 0)
                 return MatchSingleScale(_sourceGray, _sourceContour, pyramidLevels, angleStart, angleEnd,
                     angleStep, nccThreshold, maxOverlap, topN, denseMode, 1.0);
@@ -223,12 +228,12 @@ public class RotatedTemplateMatcher : IDisposable
             double sf = steps == 1 ? 1.0 : (1.0 - _scaleRange + 2.0 * _scaleRange * k / (steps - 1));
             double srcFactor = 1.0 / sf;   // 原图缩放倍数：目标大(sf>1)?原图缩小
             using var srcScaled = new Mat();
-            Cv2.Resize(_sourceGray, srcScaled, OpenCvSharp.Size.Zero, srcFactor, srcFactor, InterpolationFlags.Linear);
+            Cv2.Resize(_sourceGray, srcScaled, new OpenCvSharp.Size(0, 0), srcFactor, srcFactor, InterpolationFlags.Linear);
             Mat? contourScaled = null;
             if (UseContour && _sourceContour != null)
             {
                 contourScaled = new Mat();
-                Cv2.Resize(_sourceContour, contourScaled, OpenCvSharp.Size.Zero, srcFactor, srcFactor, InterpolationFlags.Linear);
+                Cv2.Resize(_sourceContour, contourScaled, new OpenCvSharp.Size(0, 0), srcFactor, srcFactor, InterpolationFlags.Linear);
             }
             var res = MatchSingleScale(srcScaled, contourScaled, pyramidLevels, angleStart, angleEnd,
                 angleStep, nccThreshold, maxOverlap, topN, denseMode, sf);

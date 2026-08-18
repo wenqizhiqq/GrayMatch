@@ -132,7 +132,7 @@
                     <Slider x:Name="SldPyramid" Minimum="0" Maximum="6" Value="3" TickFrequency="1"
                             IsSnapToTickEnabled="True" LargeChange="1" SmallChange="1" Margin="0,0,0,4"
                             ValueChanged="MatchParam_Changed"
-                            ToolTip="层级越高越快，但过小模板或角度大时容易漏检。"/>
+                            ToolTip="层级越高越快，但过小模板或角度大时容易漏检。&#10;轮廓匹配开启时此参数被忽略。"/>
 
                     <Button x:Name="BtnMatchDefaults" Content="恢复默认匹配参数" Height="24" Margin="0,4,0,4" FontSize="10.5"
                             Click="BtnMatchDefaults_Click"
@@ -143,7 +143,7 @@
                     <TextBlock Text="默认不勾选=快速; 规则阵列/密集图才勾选=全检出(较慢)" Style="{StaticResource CompactText}" Foreground="Gray" Margin="0,0,0,2"/>
 
                     <CheckBox x:Name="ChkContour" Content="轮廓匹配（抗光照变化，绿色轮廓线）" Margin="0,8,0,2" FontSize="11" IsChecked="False"
-                      ToolTip="勾选后，匹配改用「边缘梯度图」（Sobel 梯度幅度）代替灰度图，对光照变化、前景背景灰度接近、以及纯形状轮廓（与纹理无关）的图案更鲁棒。&#10;找到的每个目标会用绿色轮廓线画出模板的真实形状（绿框照常显示）。&#10;取消勾选则用原灰度图、只画绿框。缺陷检查始终基于灰度差异，不受影响。"/>
+                      ToolTip="勾选后，匹配改用「边缘梯度图」（Sobel 梯度幅度）代替灰度图，对光照变化、前景背景灰度接近、以及纯形状轮廓（与纹理无关）的图案更鲁棒。&#10;找到的每个目标会用绿色轮廓线画出模板的真实形状（绿框照常显示）。&#10;注意：轮廓匹配会自动忽略「金字塔层级」（边缘图下采样会抹糊细边），建议把 NCC 阈值提高到 0.40 以上，否则容易出现假阳性。"/>
 
                     <!-- 轮廓匹配参数：仅勾选轮廓匹配时才显示；调参时左侧模板会实时显示绿色轮廓 -->
                     <Border BorderBrush="#FFD0D0D0" BorderThickness="1" CornerRadius="3"

@@ -92,3 +92,10 @@ gradientMagnitude、ChkShapeMode/IsShapeMode/_chkShape、MatchMode 属性。
   2. `dotnet build GrayMatch.Wpf/GrayMatch.Wpf.csproj -c Debug -p:BaseOutputPath=<解锁目录，如 D:/wqz/code/GrayMatch/_wpfout4/>`
   → 主 obj 用默认路径（临时工程与主工程同目录，WPF 自行协调只编 .g.cs），输出重定向避开被锁 bin。
 - 结论：缺陷腐蚀膨胀功能**端到端可编译**；行为正确性此前由 `C:\gmrun5\dtest4` 用真实产品 .cs 跑通（0 轮廓误报、20px 划痕保留、0.17~2.7ms）。
+
+## 轮廓匹配（2026-08-18 现状与修复）
+- WPF UI 提供 `ChkContour` 开关，勾选后 `RotatedTemplateMatcher.UseContour=true`，匹配改用 Sobel 梯度幅度图（`MakeContour`）而非灰度图。
+- `MakeContour` 对梯度幅度做 MinMax 归一化到 CV_8U，因此 native 仍走单通道 8 位 NCC。
+- **关键限制**：边缘/梯度图经过高斯金字塔逐层下采样后细边会被抹糊，粗层种子不可靠，导致旋转目标漏检。因此 `RotatedTemplateMatcher.Match()` 在 `UseContour` 时强制 `pyramidLevels = 0`，走 legacy 两遍全分辨率路径。
+- **参数建议**：轮廓匹配对细笔画/稀疏图案容易产生低分假阳性，建议 NCC 阈值 ≥0.40（灰度模式可 0.30）。UI ToolTip 已提示轮廓模式会忽略金字塔层级。
+- 附带修复：把 `OpenCvSharp.Size.Zero` 替换为 `new OpenCvSharp.Size(0, 0)`，避免 OpenCvSharp 4.13 下 CS0117。
