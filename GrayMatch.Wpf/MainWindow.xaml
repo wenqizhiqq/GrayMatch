@@ -7,7 +7,7 @@
         mc:Ignorable="d"
         WindowState="Maximized"
         WindowStartupLocation="CenterScreen"
-        Background="#F1F5F9"
+        Background="#F5F5F7"
         Title="旋转不变 NCC 匹配器 — WPF 演示" Height="840" Width="1320">
 
     <Window.Resources>
@@ -16,77 +16,77 @@
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
 
         <!-- ===================== 调色板 / 主题 ===================== -->
-        <!-- Primary #2563EB  Accent #1D4ED8  Text #0F172A  Sub #64748B  Border #E2E8F0  Surface #FFFFFF -->
+        <!-- Primary #007AFF  Accent #0066D6  Text #1D1D1F  Sub #6E6E73  Border #E5E5EA  Surface #FFFFFF -->
 
         <!-- ===================== 图标（矢量 Path，无外部依赖） ===================== -->
         <DrawingImage x:Key="IconTarget">
             <DrawingImage.Drawing>
-                <GeometryDrawing Brush="#0F172A" Geometry="M12 2C6.49 2 2 6.49 2 12s4.49 10 10 10 10-4.49 10-10S17.51 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z"/>
+                <GeometryDrawing Brush="#1D1D1F" Geometry="M12 2C6.49 2 2 6.49 2 12s4.49 10 10 10 10-4.49 10-10S17.51 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z"/>
             </DrawingImage.Drawing>
         </DrawingImage>
         <DrawingImage x:Key="IconHelp">
             <DrawingImage.Drawing>
-                <GeometryDrawing Brush="#2563EB" Geometry="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
+                <GeometryDrawing Brush="#007AFF" Geometry="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
             </DrawingImage.Drawing>
         </DrawingImage>
         <DrawingImage x:Key="IconFolder">
             <DrawingImage.Drawing>
-                <GeometryDrawing Brush="#2563EB" Geometry="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/>
+                <GeometryDrawing Brush="#007AFF" Geometry="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/>
             </DrawingImage.Drawing>
         </DrawingImage>
         <DrawingImage x:Key="IconImage">
             <DrawingImage.Drawing>
-                <GeometryDrawing Brush="#2563EB" Geometry="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/>
+                <GeometryDrawing Brush="#007AFF" Geometry="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/>
             </DrawingImage.Drawing>
         </DrawingImage>
         <DrawingImage x:Key="IconCrop">
             <DrawingImage.Drawing>
-                <GeometryDrawing Brush="#2563EB" Geometry="M3 5v4h2V5h4V3H5c-1.1 0-2 .9-2 2zm2 10H3v6c0 1.1.9 2 2 2h6v-2H5v-6zm14 0v6h-6v2h6c1.1 0 2-.9 2-2v-6h-2zm0-16h-6v2h6v6h2V5c0-1.1-.9-2-2-2z"/>
+                <GeometryDrawing Brush="#007AFF" Geometry="M3 5v4h2V5h4V3H5c-1.1 0-2 .9-2 2zm2 10H3v6c0 1.1.9 2 2 2h6v-2H5v-6zm14 0v6h-6v2h6c1.1 0 2-.9 2-2v-6h-2zm0-16h-6v2h6v6h2V5c0-1.1-.9-2-2-2z"/>
             </DrawingImage.Drawing>
         </DrawingImage>
         <DrawingImage x:Key="IconSweep">
             <DrawingImage.Drawing>
-                <GeometryDrawing Brush="#2563EB" Geometry="M15 16h4v2h-4zm0-8h7v2h-7zm0 4h6v2h-6zM3 18c0 1.1.9 2 2 2h6c1.1 0 2-.9 2-2V8H3v10zM14 5h-3l-1-1H6L5 5H2v2h12z"/>
+                <GeometryDrawing Brush="#007AFF" Geometry="M15 16h4v2h-4zm0-8h7v2h-7zm0 4h6v2h-6zM3 18c0 1.1.9 2 2 2h6c1.1 0 2-.9 2-2V8H3v10zM14 5h-3l-1-1H6L5 5H2v2h12z"/>
             </DrawingImage.Drawing>
         </DrawingImage>
         <DrawingImage x:Key="IconRefresh">
             <DrawingImage.Drawing>
-                <GeometryDrawing Brush="#2563EB" Geometry="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+                <GeometryDrawing Brush="#007AFF" Geometry="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
             </DrawingImage.Drawing>
         </DrawingImage>
         <DrawingImage x:Key="IconTune">
             <DrawingImage.Drawing>
-                <GeometryDrawing Brush="#2563EB" Geometry="M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z"/>
+                <GeometryDrawing Brush="#007AFF" Geometry="M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z"/>
             </DrawingImage.Drawing>
         </DrawingImage>
         <DrawingImage x:Key="IconContour">
             <DrawingImage.Drawing>
-                <GeometryDrawing Brush="#2563EB" Geometry="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                <GeometryDrawing Brush="#007AFF" Geometry="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
             </DrawingImage.Drawing>
         </DrawingImage>
         <DrawingImage x:Key="IconScale">
             <DrawingImage.Drawing>
-                <GeometryDrawing Brush="#2563EB" Geometry="M22 3l-4 4h3v4h-2V8.41l-4 4L12 9.83 16.59 5H14V3h8zM2 21l4-4H3v-4h2v3.59l4-4L12 14.17 7.41 19H10v2H2z"/>
+                <GeometryDrawing Brush="#007AFF" Geometry="M22 3l-4 4h3v4h-2V8.41l-4 4L12 9.83 16.59 5H14V3h8zM2 21l4-4H3v-4h2v3.59l4-4L12 14.17 7.41 19H10v2H2z"/>
             </DrawingImage.Drawing>
         </DrawingImage>
         <DrawingImage x:Key="IconAlert">
             <DrawingImage.Drawing>
-                <GeometryDrawing Brush="#DC2626" Geometry="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/>
+                <GeometryDrawing Brush="#FF3B30" Geometry="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/>
             </DrawingImage.Drawing>
         </DrawingImage>
         <DrawingImage x:Key="IconCpu">
             <DrawingImage.Drawing>
-                <GeometryDrawing Brush="#2563EB" Geometry="M22 9V7h-2V5c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-2h2v-2h-2v-2h2v-2h-2V9h2zm-4 10H4V5h14v14zM6 7h10v10H6V7zm2 2v6h6V9H8z"/>
+                <GeometryDrawing Brush="#007AFF" Geometry="M22 9V7h-2V5c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-2h2v-2h-2v-2h2v-2h-2V9h2zm-4 10H4V5h14v14zM6 7h10v10H6V7zm2 2v6h6V9H8z"/>
             </DrawingImage.Drawing>
         </DrawingImage>
         <DrawingImage x:Key="IconInfo">
             <DrawingImage.Drawing>
-                <GeometryDrawing Brush="#0F172A" Geometry="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
+                <GeometryDrawing Brush="#1D1D1F" Geometry="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
             </DrawingImage.Drawing>
         </DrawingImage>
         <DrawingImage x:Key="IconClock">
             <DrawingImage.Drawing>
-                <GeometryDrawing Brush="#2563EB" Geometry="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/>
+                <GeometryDrawing Brush="#007AFF" Geometry="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/>
             </DrawingImage.Drawing>
         </DrawingImage>
 
@@ -95,32 +95,32 @@
             <Setter Property="FontSize" Value="10.8"/>
             <Setter Property="Margin" Value="0,1,0,2"/>
             <Setter Property="TextWrapping" Value="Wrap"/>
-            <Setter Property="Foreground" Value="#475569"/>
+            <Setter Property="Foreground" Value="#6E6E73"/>
         </Style>
         <Style x:Key="ParamLabel" TargetType="TextBlock">
             <Setter Property="FontSize" Value="10.8"/>
             <Setter Property="Margin" Value="0,2,0,1"/>
-            <Setter Property="Foreground" Value="#475569"/>
+            <Setter Property="Foreground" Value="#6E6E73"/>
         </Style>
         <Style x:Key="ValueText" TargetType="TextBlock">
             <Setter Property="FontSize" Value="10.8"/>
             <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="Foreground" Value="#2563EB"/>
+            <Setter Property="Foreground" Value="#007AFF"/>
             <Setter Property="Margin" Value="4,0,0,2"/>
         </Style>
 
         <!-- 卡片容器 -->
         <Style x:Key="Card" TargetType="Border">
             <Setter Property="Background" Value="White"/>
-            <Setter Property="BorderBrush" Value="#E2E8F0"/>
+            <Setter Property="BorderBrush" Value="#E5E5EA"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="10"/>
-            <Setter Property="Padding" Value="12,10"/>
-            <Setter Property="Margin" Value="0,0,0,10"/>
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Padding" Value="14,12"/>
+            <Setter Property="Margin" Value="0,0,0,12"/>
             <Setter Property="SnapsToDevicePixels" Value="True"/>
             <Setter Property="Effect">
                 <Setter.Value>
-                    <DropShadowEffect BlurRadius="10" ShadowDepth="1" Opacity="0.07" Color="#0F172A"/>
+                    <DropShadowEffect BlurRadius="14" ShadowDepth="0" Opacity="0.05" Color="#1D1D1F"/>
                 </Setter.Value>
             </Setter>
         </Style>
@@ -134,7 +134,7 @@
         <Style x:Key="SectionTitle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="Foreground" Value="#0F172A"/>
+            <Setter Property="Foreground" Value="#1D1D1F"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
         </Style>
 
@@ -142,9 +142,9 @@
         <Style x:Key="ModernButton" TargetType="Button">
             <Setter Property="Height" Value="34"/>
             <Setter Property="Padding" Value="12,0"/>
-            <Setter Property="Foreground" Value="#0F172A"/>
+            <Setter Property="Foreground" Value="#1D1D1F"/>
             <Setter Property="Background" Value="White"/>
-            <Setter Property="BorderBrush" Value="#CBD5E1"/>
+            <Setter Property="BorderBrush" Value="#D2D2D7"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
@@ -157,16 +157,16 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="bd" Property="Background" Value="#F1F5F9"/>
-                                <Setter TargetName="bd" Property="BorderBrush" Value="#94A3B8"/>
+                                <Setter TargetName="bd" Property="Background" Value="#ECECEC"/>
+                                <Setter TargetName="bd" Property="BorderBrush" Value="#C7C7CC"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="bd" Property="Background" Value="#E2E8F0"/>
+                                <Setter TargetName="bd" Property="Background" Value="#E0E0E2"/>
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
-                                <Setter TargetName="bd" Property="Background" Value="#F1F5F9"/>
-                                <Setter TargetName="bd" Property="BorderBrush" Value="#E2E8F0"/>
-                                <Setter Property="Foreground" Value="#94A3B8"/>
+                                <Setter TargetName="bd" Property="Background" Value="#F5F5F7"/>
+                                <Setter TargetName="bd" Property="BorderBrush" Value="#E5E5EA"/>
+                                <Setter Property="Foreground" Value="#A1A1A6"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -179,8 +179,8 @@
             <Setter Property="Height" Value="40"/>
             <Setter Property="Padding" Value="14,0"/>
             <Setter Property="Foreground" Value="White"/>
-            <Setter Property="Background" Value="#2563EB"/>
-            <Setter Property="BorderBrush" Value="#2563EB"/>
+            <Setter Property="Background" Value="#007AFF"/>
+            <Setter Property="BorderBrush" Value="#007AFF"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Cursor" Value="Hand"/>
@@ -194,15 +194,15 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="bd" Property="Background" Value="#1D4ED8"/>
-                                <Setter TargetName="bd" Property="BorderBrush" Value="#1D4ED8"/>
+                                <Setter TargetName="bd" Property="Background" Value="#0066D6"/>
+                                <Setter TargetName="bd" Property="BorderBrush" Value="#0066D6"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="bd" Property="Background" Value="#1E40AF"/>
+                                <Setter TargetName="bd" Property="Background" Value="#005BBF"/>
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
-                                <Setter TargetName="bd" Property="Background" Value="#93C5FD"/>
-                                <Setter TargetName="bd" Property="BorderBrush" Value="#93C5FD"/>
+                                <Setter TargetName="bd" Property="Background" Value="#8ED0FF"/>
+                                <Setter TargetName="bd" Property="BorderBrush" Value="#8ED0FF"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -215,7 +215,7 @@
             <Setter Property="Height" Value="26"/>
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Foreground" Value="#2563EB"/>
+            <Setter Property="Foreground" Value="#007AFF"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="HorizontalAlignment" Value="Left"/>
             <Setter Property="Template">
@@ -233,35 +233,47 @@
         <!-- 复选框 -->
         <Style x:Key="ModernCheck" TargetType="CheckBox">
             <Setter Property="FontSize" Value="11.5"/>
-            <Setter Property="Foreground" Value="#0F172A"/>
+            <Setter Property="Foreground" Value="#1D1D1F"/>
             <Setter Property="Margin" Value="0,6,0,2"/>
             <Setter Property="Cursor" Value="Hand"/>
         </Style>
 
-        <!-- 滑块 -->
+        <!-- 滑块（macOS 风格：细灰轨道 + 白色圆点带柔影与强调色描边） -->
         <Style x:Key="SliderThumbStyle" TargetType="Thumb">
-            <Setter Property="Width" Value="15"/>
-            <Setter Property="Height" Value="15"/>
+            <Setter Property="Width" Value="18"/>
+            <Setter Property="Height" Value="18"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Thumb">
                         <Grid>
-                            <Ellipse Fill="White" Stroke="#2563EB" StrokeThickness="3"/>
-                            <Ellipse Fill="#2563EB" Width="5" Height="5"/>
+                            <Ellipse Fill="White" Stroke="#C7C7CC" StrokeThickness="0.75">
+                                <Ellipse.Effect>
+                                    <DropShadowEffect BlurRadius="3" ShadowDepth="1" Opacity="0.25" Color="#000000"/>
+                                </Ellipse.Effect>
+                            </Ellipse>
+                            <Ellipse x:Name="ring" Fill="Transparent" Stroke="#007AFF" StrokeThickness="0" Width="18" Height="18"/>
                         </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ring" Property="StrokeThickness" Value="3"/>
+                            </Trigger>
+                            <Trigger Property="IsDragging" Value="True">
+                                <Setter TargetName="ring" Property="StrokeThickness" Value="3.5"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
         </Style>
         <Style x:Key="ModernSlider" TargetType="Slider">
-            <Setter Property="Margin" Value="0,0,0,6"/>
+            <Setter Property="Margin" Value="0,2,0,8"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Slider">
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto" MinHeight="18"/>
+                                <RowDefinition Height="Auto" MinHeight="22"/>
                                 <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
                             <Track Grid.Row="1" x:Name="PART_Track">
@@ -269,7 +281,7 @@
                                     <RepeatButton Command="{x:Static Slider.DecreaseLarge}">
                                         <RepeatButton.Template>
                                             <ControlTemplate TargetType="RepeatButton">
-                                                <Border Height="5" CornerRadius="2.5" Background="#2563EB" VerticalAlignment="Center"/>
+                                                <Border Height="4" CornerRadius="2" Background="#D2D2D7" VerticalAlignment="Center"/>
                                             </ControlTemplate>
                                         </RepeatButton.Template>
                                     </RepeatButton>
@@ -278,7 +290,7 @@
                                     <RepeatButton Command="{x:Static Slider.IncreaseLarge}">
                                         <RepeatButton.Template>
                                             <ControlTemplate TargetType="RepeatButton">
-                                                <Border Height="5" CornerRadius="2.5" Background="#E2E8F0" VerticalAlignment="Center"/>
+                                                <Border Height="4" CornerRadius="2" Background="#D2D2D7" VerticalAlignment="Center"/>
                                             </ControlTemplate>
                                         </RepeatButton.Template>
                                     </RepeatButton>
@@ -296,13 +308,13 @@
         <!-- 信息区标签/值 -->
         <Style x:Key="InfoLabel" TargetType="TextBlock">
             <Setter Property="FontSize" Value="10.5"/>
-            <Setter Property="Foreground" Value="#64748B"/>
+            <Setter Property="Foreground" Value="#6E6E73"/>
             <Setter Property="Margin" Value="20,2,0,1"/>
         </Style>
         <Style x:Key="InfoValue" TargetType="TextBlock">
             <Setter Property="FontSize" Value="11.5"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Foreground" Value="#0F172A"/>
+            <Setter Property="Foreground" Value="#1D1D1F"/>
             <Setter Property="Margin" Value="20,0,0,8"/>
             <Setter Property="TextWrapping" Value="Wrap"/>
         </Style>
@@ -319,36 +331,34 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- 顶部标题栏 -->
-        <Border Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="0">
-            <Border.Background>
-                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                    <GradientStop Color="#2563EB" Offset="0"/>
-                    <GradientStop Color="#1E40AF" Offset="1"/>
-                </LinearGradientBrush>
-            </Border.Background>
-            <Border.Effect>
-                <DropShadowEffect BlurRadius="8" ShadowDepth="2" Opacity="0.15" Color="#0F172A"/>
-            </Border.Effect>
+        <!-- 顶部标题栏（Apple 风格：浅色工具栏 + 交通灯 + 强调色标题） -->
+        <Border Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="0"
+                Background="#F5F5F7" BorderBrush="#D2D2D7" BorderThickness="0,0,0,1">
             <Grid Margin="16,0">
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <Border Background="White" CornerRadius="9" Padding="9" Margin="0,0,12,0">
+                    <!-- macOS 红黄绿交通灯，纯装饰 -->
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,14,0" IsHitTestVisible="False">
+                        <Ellipse Fill="#FF5F57" Width="12" Height="12" Margin="0,0,8,0"/>
+                        <Ellipse Fill="#FEBC2E" Width="12" Height="12" Margin="0,0,8,0"/>
+                        <Ellipse Fill="#28C840" Width="12" Height="12"/>
+                    </StackPanel>
+                    <Border Background="#007AFF" CornerRadius="8" Padding="8" Margin="0,0,12,0">
                         <Path Data="M12 2C6.49 2 2 6.49 2 12s4.49 10 10 10 10-4.49 10-10S17.51 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z"
-                              Fill="#2563EB" Width="22" Height="22" Stretch="Uniform"/>
+                              Fill="White" Width="20" Height="20" Stretch="Uniform"/>
                     </Border>
                     <StackPanel VerticalAlignment="Center">
-                        <TextBlock Text="旋转不变 NCC 匹配器" Foreground="White" FontSize="16" FontWeight="Bold"/>
-                        <TextBlock Text="WPF 演示 · 灰度 / 轮廓匹配 · 缺陷检测" Foreground="#BFDBFE" FontSize="11" Margin="0,1,0,0"/>
+                        <TextBlock Text="旋转不变 NCC 匹配器" Foreground="#1D1D1F" FontSize="15" FontWeight="SemiBold"/>
+                        <TextBlock Text="灰度 / 轮廓匹配 · 缺陷检测" Foreground="#6E6E73" FontSize="11" Margin="0,1,0,0"/>
                     </StackPanel>
                 </StackPanel>
-                <Border Background="#1D4ED8" CornerRadius="6" Padding="8,3" HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <TextBlock Text="实时预览 · 拖滑块即刷新" Foreground="#EFF6FF" FontSize="10.5" VerticalAlignment="Center"/>
+                <Border Background="#EAF3FF" CornerRadius="7" Padding="9,3" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <TextBlock Text="实时预览 · 拖滑块即刷新" Foreground="#007AFF" FontSize="10.5" VerticalAlignment="Center"/>
                 </Border>
             </Grid>
         </Border>
 
         <!-- 左侧工具栏 -->
-        <Border Grid.Column="0" Grid.Row="1" Background="#F1F5F9">
+        <Border Grid.Column="0" Grid.Row="1" Background="#F5F5F7">
             <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Margin="10,10,8,10">
                 <StackPanel>
 
@@ -383,15 +393,15 @@
                                 </StackPanel>
                             </Button>
                             <TextBlock Text="图片列表（点一张即载入，自动匹配）" Style="{StaticResource CompactText}" Margin="0,8,0,2"/>
-                            <ListBox x:Name="LstImages" Height="92" Margin="0,0,0,6"
-                                     BorderBrush="#E2E8F0" BorderThickness="1" Background="#F8FAFC"
+                            <ListBox x:Name="LstImages" Height="195" Margin="0,0,0,6"
+                                     BorderBrush="#E5E5EA" BorderThickness="1" Background="#FBFBFD"
                                      SelectionChanged="LstImages_SelectionChanged"
                                      ToolTip="打开文件夹后会列出里面的图片，点一张就载入到右侧画布（只载入显示，不会自动跑匹配；要匹配请点「开始查找」)">
                                 <ListBox.ItemTemplate>
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                             <Image Source="{StaticResource IconImage}" Width="14" Height="14" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                                            <TextBlock Text="{Binding}" VerticalAlignment="Center" FontSize="11.5" Foreground="#0F172A" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Text="{Binding}" VerticalAlignment="Center" FontSize="11.5" Foreground="#1D1D1F" TextTrimming="CharacterEllipsis"/>
                                         </StackPanel>
                                     </DataTemplate>
                                 </ListBox.ItemTemplate>
@@ -406,7 +416,7 @@
                             </Button>
 
                             <TextBlock Text="模板预览（创建后显示）" Style="{StaticResource ParamLabel}" Margin="0,10,0,3"/>
-                            <Border BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" Height="165" Margin="0,0,0,2" Background="#F8FAFC">
+                            <Border BorderBrush="#E5E5EA" BorderThickness="1" CornerRadius="8" Height="165" Margin="0,0,0,2" Background="#FBFBFD">
                                 <Image Source="{Binding TemplateBitmap}" Stretch="Uniform" Margin="4"/>
                             </Border>
                         </StackPanel>
@@ -489,18 +499,18 @@
                                 <TextBlock Text="恢复默认匹配参数" VerticalAlignment="Center" FontSize="11"/>
                             </Button>
 
-                            <CheckBox x:Name="ChkDense" Style="{StaticResource ModernCheck}" Content="密集模式（适合规则阵列）" IsChecked="False"
+                            <CheckBox x:Name="ChkDense" Content="密集模式（适合规则阵列）" IsChecked="False"
                                       ToolTip="默认不勾选（快速）：种子上限 24，稀疏/普通图几毫秒（实测 ±45°≈5ms），但规则阵列里的大部分重复目标会被漏检，只保留少量代表。&#10;勾选（规则阵列）：粗扫不限制种子数量，可把焊球阵列等成百上千个相同目标全部检出；代价是密集图上耗时会升到十几毫秒（实测 ±45°≈15ms、全 360°≈38ms）。"/>
-                            <TextBlock Text="默认不勾选=快速; 规则阵列/密集图才勾选=全检出(较慢)" Style="{StaticResource CompactText}" Foreground="#94A3B8" Margin="0,0,0,2"/>
+                            <TextBlock Text="默认不勾选=快速; 规则阵列/密集图才勾选=全检出(较慢)" Style="{StaticResource CompactText}" Foreground="#A1A1A6" Margin="0,0,0,2"/>
 
-                            <CheckBox x:Name="ChkContour" Style="{StaticResource ModernCheck}" Content="轮廓匹配（抗光照变化，绿色轮廓线）" IsChecked="False"
+                            <CheckBox x:Name="ChkContour" Content="轮廓匹配（抗光照变化，绿色轮廓线）" IsChecked="False"
                                       ToolTip="勾选后，匹配改用「边缘梯度图」（Sobel 梯度幅度）代替灰度图，对光照变化、前景背景灰度接近、以及纯形状轮廓（与纹理无关）的图案更鲁棒。&#10;找到的每个目标会用绿色轮廓线画出模板的真实形状（绿框照常显示）。&#10;注意：轮廓匹配会自动忽略「金字塔层级」（边缘图下采样会抹糊细边），建议把 NCC 阈值提高到 0.40 以上，否则容易出现假阳性。"/>
                         </StackPanel>
                     </Border>
 
                     <!-- 轮廓匹配参数 -->
-                    <Border BorderBrush="#BFDBFE" BorderThickness="1" CornerRadius="10"
-                            Padding="12,10" Margin="0,0,0,10" Background="#EFF6FF"
+                    <Border BorderBrush="#C7E0FF" BorderThickness="1" CornerRadius="10"
+                            Padding="12,10" Margin="0,0,0,10" Background="#EAF3FF"
                             Visibility="{Binding ElementName=ChkContour, Path=IsChecked, Converter={StaticResource BoolToVis}}">
                         <StackPanel>
                             <StackPanel Style="{StaticResource SectionHeader}">
@@ -523,7 +533,7 @@
                                     IsSnapToTickEnabled="True" LargeChange="1" SmallChange="1"
                                     ValueChanged="ContourParam_Changed"
                                     ToolTip="Canny 低阈值：值越小保留的边越多，值越大只保留最强边缘"/>
-                            <TextBlock Text="拖动滑块时左侧模板会实时显示绿色轮廓" Style="{StaticResource CompactText}" Foreground="#94A3B8"/>
+                            <TextBlock Text="拖动滑块时左侧模板会实时显示绿色轮廓" Style="{StaticResource CompactText}" Foreground="#A1A1A6"/>
                         </StackPanel>
                     </Border>
 
@@ -534,7 +544,7 @@
                                 <Image Source="{StaticResource IconScale}" Width="16" Height="16" Margin="0,0,7,0" VerticalAlignment="Center"/>
                                 <TextBlock Text="多尺度匹配（全局）" Style="{StaticResource SectionTitle}"/>
                             </StackPanel>
-                            <TextBlock Text="灰度 / 轮廓模式均生效" Style="{StaticResource CompactText}" Foreground="#94A3B8" Margin="0,0,0,2"/>
+                            <TextBlock Text="灰度 / 轮廓模式均生效" Style="{StaticResource CompactText}" Foreground="#A1A1A6" Margin="0,0,0,2"/>
                             <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
                                 <TextBlock Text="模板大小倍数（0=关）" Style="{StaticResource CompactText}" VerticalAlignment="Center"/>
                                 <TextBlock x:Name="TbScaleRangeVal" Text="0.00" Style="{StaticResource ValueText}"/>
@@ -553,14 +563,14 @@
                                 <Image Source="{StaticResource IconAlert}" Width="16" Height="16" Margin="0,0,7,0" VerticalAlignment="Center"/>
                                 <TextBlock Text="缺陷检测" Style="{StaticResource SectionTitle}"/>
                             </StackPanel>
-                            <CheckBox x:Name="ChkDefect" Style="{StaticResource ModernCheck}" Content="顺便检查缺陷（污渍/划痕/缺料）"
+                            <CheckBox x:Name="ChkDefect" Content="顺便检查缺陷（污渍/划痕/缺料）"
                                       ToolTip="勾选后，除了找目标，还会在每个目标上检查有没有污渍、划痕、缺料等问题，并用红框标出"/>
 
-                            <Border BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8"
-                                    Padding="8,6" Margin="0,4,0,2" Background="#F8FAFC"
+                            <Border BorderBrush="#E5E5EA" BorderThickness="1" CornerRadius="8"
+                                    Padding="8,6" Margin="0,4,0,2" Background="#FBFBFD"
                                     Visibility="{Binding ElementName=ChkDefect, Path=IsChecked, Converter={StaticResource BoolToVis}}">
                                 <StackPanel>
-                                    <TextBlock Text="缺陷检测参数" FontWeight="Bold" FontSize="11.5" Margin="0,0,0,6" Foreground="#0F172A"/>
+                                    <TextBlock Text="缺陷检测参数" FontWeight="Bold" FontSize="11.5" Margin="0,0,0,6" Foreground="#1D1D1F"/>
 
                                     <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
                                         <TextBlock Text="差值阈值 1~254" Style="{StaticResource CompactText}" VerticalAlignment="Center"/>
@@ -662,33 +672,33 @@
 
                             <StackPanel Orientation="Horizontal" Margin="0,2,0,2">
                                 <Image Source="{StaticResource IconCpu}" Width="14" Height="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                                <TextBlock Text="电脑配置" FontSize="10.5" Foreground="#64748B" VerticalAlignment="Center"/>
+                                <TextBlock Text="电脑配置" FontSize="10.5" Foreground="#6E6E73" VerticalAlignment="Center"/>
                             </StackPanel>
                             <TextBlock Text="{Binding ComputerConfigText}" Style="{StaticResource InfoValue}"/>
 
                             <StackPanel Orientation="Horizontal" Margin="0,2,0,2">
                                 <Image Source="{StaticResource IconImage}" Width="14" Height="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                                <TextBlock Text="图像分辨率" FontSize="10.5" Foreground="#64748B" VerticalAlignment="Center"/>
+                                <TextBlock Text="图像分辨率" FontSize="10.5" Foreground="#6E6E73" VerticalAlignment="Center"/>
                             </StackPanel>
                             <TextBlock Text="{Binding ImageSizeText}" Style="{StaticResource InfoValue}"/>
 
                             <StackPanel Orientation="Horizontal" Margin="0,2,0,2">
                                 <Image Source="{StaticResource IconCrop}" Width="14" Height="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                                <TextBlock Text="模板分辨率" FontSize="10.5" Foreground="#64748B" VerticalAlignment="Center"/>
+                                <TextBlock Text="模板分辨率" FontSize="10.5" Foreground="#6E6E73" VerticalAlignment="Center"/>
                             </StackPanel>
                             <TextBlock Text="{Binding TemplateSizeText}" Style="{StaticResource InfoValue}"/>
 
                             <StackPanel Orientation="Horizontal" Margin="0,2,0,2">
                                 <Image Source="{StaticResource IconClock}" Width="14" Height="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                                <TextBlock Text="匹配耗时" FontSize="10.5" Foreground="#64748B" VerticalAlignment="Center"/>
+                                <TextBlock Text="匹配耗时" FontSize="10.5" Foreground="#6E6E73" VerticalAlignment="Center"/>
                             </StackPanel>
                             <TextBlock Text="{Binding MatchMsText}" Style="{StaticResource InfoValue}"/>
 
                             <StackPanel Orientation="Horizontal" Margin="0,2,0,2">
                                 <Image Source="{StaticResource IconAlert}" Width="14" Height="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                                <TextBlock Text="缺陷统计" FontSize="10.5" Foreground="#64748B" VerticalAlignment="Center"/>
+                                <TextBlock Text="缺陷统计" FontSize="10.5" Foreground="#6E6E73" VerticalAlignment="Center"/>
                             </StackPanel>
-                            <TextBlock Text="{Binding DefectSummaryText}" Style="{StaticResource InfoValue}" Foreground="#DC2626"/>
+                            <TextBlock Text="{Binding DefectSummaryText}" Style="{StaticResource InfoValue}" Foreground="#FF3B30"/>
                         </StackPanel>
                     </Border>
 
@@ -697,10 +707,10 @@
         </Border>
 
         <!-- 图像显示画布：滚轮缩放 / 中键拖动平移 / 双击复位（替代原 Viewbox 自适应） -->
-        <Border Grid.Column="1" Grid.Row="1" Background="#0F172A">
+        <Border Grid.Column="1" Grid.Row="1" Background="#1D1D1F">
             <Grid>
                 <ScrollViewer x:Name="ImageViewport"
-                              Background="#0F172A"
+                              Background="#1D1D1F"
                               HorizontalScrollBarVisibility="Hidden"
                               VerticalScrollBarVisibility="Hidden"
                               HorizontalContentAlignment="Center"
@@ -815,9 +825,9 @@
 
         <!-- 底部状态栏 -->
         <StatusBar Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="2"
-                   BorderBrush="#E2E8F0" BorderThickness="0,1,0,0">
+                   BorderBrush="#D2D2D7" BorderThickness="0,1,0,0">
             <StatusBar.Background>
-                <SolidColorBrush Color="#FFFFFF"/>
+                <SolidColorBrush Color="#F5F5F7"/>
             </StatusBar.Background>
             <StatusBar.ItemsPanel>
                 <ItemsPanelTemplate>
@@ -825,7 +835,7 @@
                 </ItemsPanelTemplate>
             </StatusBar.ItemsPanel>
             <Image Source="{StaticResource IconInfo}" Width="14" Height="14" Margin="10,0,6,0" VerticalAlignment="Center"/>
-            <TextBlock Text="{Binding StatusText}" Padding="0,3" FontSize="10.5" Foreground="#475569" VerticalAlignment="Center"/>
+            <TextBlock Text="{Binding StatusText}" Padding="0,3" FontSize="10.5" Foreground="#6E6E73" VerticalAlignment="Center"/>
         </StatusBar>
     </Grid>
 </Window>
