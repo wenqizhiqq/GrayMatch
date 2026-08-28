@@ -187,13 +187,13 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private void BtnMatchDefaults_Click(object sender, RoutedEventArgs e)
     {
         _suppressAutoMatch = true;
-        SldAngleStart.Value = -45;
-        SldAngleEnd.Value = 45;
-        SldAngleStep.Value = 2;
-        SldThreshold.Value = 0.30;
+        SldAngleStart.Value = -180;
+        SldAngleEnd.Value = 180;
+        SldAngleStep.Value = 1;
+        SldThreshold.Value = 0.50;
         SldOverlap.Value = 0.25;
-        SldTopN.Value = 20;
-        SldPyramid.Value = 3;
+        SldTopN.Value = 10;
+        SldPyramid.Value = 4;
         _suppressAutoMatch = false;
         ScheduleAutoMatch();
     }
@@ -746,13 +746,13 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     // 所有匹配/轮廓参数自动保存自动载入；JSON 仅存 UI 控件的值，启动时回填控件即可。
     private sealed class MatchSettings
     {
-        public double AngleStart { get; set; } = -45;
-        public double AngleEnd { get; set; } = 45;
-        public double AngleStep { get; set; } = 2;
-        public double Threshold { get; set; } = 0.30;
+        public double AngleStart { get; set; } = -180;
+        public double AngleEnd { get; set; } = 180;
+        public double AngleStep { get; set; } = 1;
+        public double Threshold { get; set; } = 0.50;
         public double Overlap { get; set; } = 0.25;
-        public double TopN { get; set; } = 20;
-        public int PyramidLevel { get; set; } = 3;
+        public double TopN { get; set; } = 10;
+        public int PyramidLevel { get; set; } = 4;
         public bool Contour { get; set; }
         public double ContourBlur { get; set; } = 1;
         public int ContourThreshold { get; set; } = 30;
@@ -768,13 +768,13 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             Directory.CreateDirectory(AppDataDir);
             var s = new MatchSettings
             {
-                AngleStart = SldAngleStart?.Value ?? -45,
-                AngleEnd = SldAngleEnd?.Value ?? 45,
-                AngleStep = SldAngleStep?.Value ?? 2,
-                Threshold = SldThreshold?.Value ?? 0.30,
+                AngleStart = SldAngleStart?.Value ?? -180,
+                AngleEnd = SldAngleEnd?.Value ?? 180,
+                AngleStep = SldAngleStep?.Value ?? 1,
+                Threshold = SldThreshold?.Value ?? 0.50,
                 Overlap = SldOverlap?.Value ?? 0.25,
-                TopN = SldTopN?.Value ?? 20,
-                PyramidLevel = (int)System.Math.Round(SldPyramid?.Value ?? 3),
+                TopN = SldTopN?.Value ?? 10,
+                PyramidLevel = (int)System.Math.Round(SldPyramid?.Value ?? 4),
                 Contour = ChkContour?.IsChecked == true,
                 ContourBlur = SldContourBlur?.Value ?? 1,
                 ContourThreshold = (int)(SldContourThreshold?.Value ?? 30),
@@ -949,10 +949,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private void UpdateInfluenceFactors()
     {
         var sb = new StringBuilder();
-        double start = SldAngleStart?.Value ?? -45;
-        double end = SldAngleEnd?.Value ?? 45;
-        double step = SldAngleStep?.Value ?? 2;
-        int pyramid = (int)System.Math.Round(SldPyramid?.Value ?? 3);
+        double start = SldAngleStart?.Value ?? -180;
+        double end = SldAngleEnd?.Value ?? 180;
+        double step = SldAngleStep?.Value ?? 1;
+        int pyramid = (int)System.Math.Round(SldPyramid?.Value ?? 4);
 
         int angleCount = (step > 1e-9 && end >= start)
             ? (int)System.Math.Floor((end - start) / step) + 1 : 0;

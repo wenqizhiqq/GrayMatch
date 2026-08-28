@@ -79,7 +79,7 @@ public partial class Form1 : Form
         _numAngleStep = CreateNumeric("角度步", 0.1m, 90, 1, 1, ref y);
         _numThreshold = CreateNumeric("NCC阈值", 0.0m, 1.0m, 0.5m, 2, ref y);
         _numOverlap = CreateNumeric("最大重叠", 0.0m, 1.0m, 0.25m, 2, ref y);
-        _numTopN = CreateNumeric("TopN", 1, 1000, 64, 0, ref y);
+        _numTopN = CreateNumeric("TopN", 1, 1000, 10, 0, ref y);
 
 
         // Right panel
