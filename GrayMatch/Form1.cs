@@ -38,7 +38,7 @@ public partial class Form1 : Form
         InitializeComponent();
         BuildUi();
         WireEvents();
-        this.Text = "旋转不变 NCC 匹配器 — C# 演示";
+        this.Text = "旋转不变 NCC 匹配器 — C# 演示 · " + CodeMeta.Signature;
         this.ClientSize = new Size(1280, 820);
         this.DoubleBuffered = true;
     }

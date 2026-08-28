@@ -18,6 +18,7 @@
     <Compile Include="..\GrayMatch\MatchResult.cs" Link="MatchResult.cs" />
     <Compile Include="..\GrayMatch\RotatedTemplateMatcher.cs" Link="RotatedTemplateMatcher.cs" />
       <Compile Include="..\GrayMatch\DefectResult.cs" Link="DefectResult.cs" />
+      <Compile Include="..\GrayMatch\CodeMeta.cs" Link="CodeMeta.cs" />
   </ItemGroup>
 
   <!-- Build the native matcher from this solution so F5 in VS compiles it first.
