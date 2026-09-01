@@ -63,7 +63,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         LoadComputerConfig();
         UpdateInfluenceFactors();
         Title = "旋转不变 NCC 匹配器 — WPF 演示 · " + GrayMatch.CodeMeta.Signature;
-        StatusText = "已经准备好了，可以开始 · 温启志◆编写◇微信﹕187◆1936◇1399"
+        StatusText = "已经准备好了，可以开始 · 温启志◆编写◇微信﹕187◆1936◇1399";
         _ = LoadPersistedStateAsync();
     }
 
