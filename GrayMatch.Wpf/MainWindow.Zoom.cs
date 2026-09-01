@@ -1,3 +1,12 @@
+// ============================================================
+// 温启志◆编写◇微信﹕187◆1936◇1399
+// ============================================================
+// ============================================================
+// 温启志◆编写◇微信﹕187◆1936◇1399
+// ============================================================
+// ============================================================
+// 温启志◆编写◇微信︕187◆1936◇1399
+// ============================================================
 using System;
 using System.ComponentModel;
 using System.Windows;
@@ -24,17 +33,17 @@ namespace GrayMatch.Wpf;
 /// layout transform, so the ROI rectangle and the result/defect overlays all stay glued to the pixels.
 ///
 /// Controls:
-///   - Mouse wheel        �� zoom in/out about the cursor
-///   - Middle button drag �� pan
-///   - Double click       �� reset / fit-to-view
-///   - New image / resize �� auto fit (until the user has manually transformed)
+///   - Mouse wheel        → zoom in/out about the cursor
+///   - Middle button drag → pan
+///   - Double click       → reset / fit-to-view
+///   - New image / resize → auto fit (until the user has manually transformed)
 /// </summary>
 public partial class MainWindow
 {
     private bool _isPanning;
     private Point _panStart;          // cursor position at pan start (in ScrollViewer space)
     private Point _scrollStart;       // scroll offsets at pan start
-    private bool _manualTransform;    // user has zoomed/panned �� stop auto-fitting
+    private bool _manualTransform;    // user has zoomed/panned → stop auto-fitting
     private bool _initialFitPending = true;
     private bool _isFitting;          // re-entrancy guard for FitToView
     private int _fitCount;
@@ -162,7 +171,7 @@ public partial class MainWindow
         if (!_isPanning) return;
         var sv = (ScrollViewer)sender;
         Point p = e.GetPosition(sv);
-        // Dragging right moves content right �� scroll offset decreases.
+        // Dragging right moves content right → scroll offset decreases.
         sv.ScrollToHorizontalOffset(_scrollStart.X - (p.X - _panStart.X));
         sv.ScrollToVerticalOffset(_scrollStart.Y - (p.Y - _panStart.Y));
         e.Handled = true;
@@ -209,7 +218,7 @@ public partial class MainWindow
             ImageViewport.ScrollToVerticalOffset(0);
 
             _fitCount++;
-            StatusText = $"����#{_fitCount} ����={scale:F3} Դ={srcW:F0}x{srcH:F0} �ӿ�={vpW:F0}x{vpH:F0}";
+            StatusText = $"适配#{_fitCount} 缩放={scale:F3} 源={srcW:F0}x{srcH:F0} 视口={vpW:F0}x{vpH:F0}";
         }
         finally
         {

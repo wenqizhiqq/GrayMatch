@@ -1,3 +1,12 @@
+// ============================================================
+// 温启志◆编写◇微信﹕187◆1936◇1399
+// ============================================================
+// ============================================================
+// 温启志◆编写◇微信﹕187◆1936◇1399
+// ============================================================
+// ============================================================
+// 温启志◆编写◇微信︕187◆1936◇1399
+// ============================================================
 using System.Windows;
 using System.Windows.Controls;
 
@@ -28,10 +37,10 @@ public partial class MainWindow
     /// Reads the panel and pushes it into the matcher.
     ///
     /// Every value is clamped to a range the detector can actually use, so a typo cannot
-    /// silently produce a nonsense mask �? a 99-px erode kernel would erase every defect and
+    /// silently produce a nonsense mask 鈥? a 99-px erode kernel would erase every defect and
     /// look like "detection stopped working".
     ///
-    /// �?小面�?占比 is shown as a percentage because that reads better in the UI; the detector
+    /// 鏈?灏忛潰绉?鍗犳瘮 is shown as a percentage because that reads better in the UI; the detector
     /// wants a fraction of the template area, hence the /100.
     /// </summary>
     private void ApplyDefectParams()
@@ -67,7 +76,7 @@ public partial class MainWindow
 
     private static double Clamp(double v, double lo, double hi) => v < lo ? lo : (v > hi ? hi : v);
 
-    /// <summary>Any defect textbox edited �? re-read the whole panel (cheap, and keeps it simple).</summary>
+    /// <summary>Any defect textbox edited 鈥? re-read the whole panel (cheap, and keeps it simple).</summary>
     private void DefectParam_Changed(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
         if (_suppressAutoMatch) return;
@@ -86,6 +95,6 @@ public partial class MainWindow
         SldDefectGlobal.Value = 28;
         ApplyDefectParams();
         ScheduleAutoMatch();
-        StatusText = "缺陷参数已恢复默�?";
+        StatusText = "缂洪櫡鍙傛暟宸叉仮澶嶉粯璁?";
     }
 }

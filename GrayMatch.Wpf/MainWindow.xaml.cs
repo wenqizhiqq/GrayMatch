@@ -1,3 +1,12 @@
+// ============================================================
+// æ¸©å¯å¿—â—†ç¼–å†™â—‡å¾®ä¿¡ï¹•187â—†1936â—‡1399
+// ============================================================
+// ============================================================
+// æ¸©å¯å¿—â—†ç¼–å†™â—‡å¾®ä¿¡ï¹•187â—†1936â—‡1399
+// ============================================================
+// ============================================================
+// æ¸©å¯å¿—â—†ç¼–å†™â—‡å¾®ä¿¡ï¸•187â—†1936â—‡1399
+// ============================================================
 using Microsoft.Win32;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -17,8 +26,8 @@ using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using OpenCvSharp;
 
-// OpenCvSharp Óë System.Windows ¶¼µ¼³ö Window / Point£¬ÕâÀïÓÃ±ğÃûÏûÆçÒå£¬
-// ÈÃ MainWindow : Window ÓëÊó±êÊÂ¼şµÄ Point ¶¼Ö¸Ïò WPF °æ±¾¡£
+// OpenCvSharp ä¸ System.Windows éƒ½å¯¼å‡º Window / Pointï¼Œè¿™é‡Œç”¨åˆ«åæ¶ˆæ­§ä¹‰ï¼Œ
+// è®© MainWindow : Window ä¸é¼ æ ‡äº‹ä»¶çš„ Point éƒ½æŒ‡å‘ WPF ç‰ˆæœ¬ã€‚
 using Window = System.Windows.Window;
 using Point = System.Windows.Point;
 
@@ -53,8 +62,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         WireEvents();
         LoadComputerConfig();
         UpdateInfluenceFactors();
-        Title = "Ğı×ª²»±ä NCC Æ¥ÅäÆ÷ ¡ª WPF ÑİÊ¾ ¡¤ " + GrayMatch.CodeMeta.Signature;
-        StatusText = "ÒÑ¾­×¼±¸ºÃÁË£¬¿ÉÒÔ¿ªÊ¼";
+        Title = "æ—‹è½¬ä¸å˜ NCC åŒ¹é…å™¨ â€” WPF æ¼”ç¤º Â· " + GrayMatch.CodeMeta.Signature;
+        StatusText = "å·²ç»å‡†å¤‡å¥½äº†ï¼Œå¯ä»¥å¼€å§‹ Â· æ¸©å¯å¿—â—†ç¼–å†™â—‡å¾®ä¿¡ï¹•187â—†1936â—‡1399"
         _ = LoadPersistedStateAsync();
     }
 
@@ -81,7 +90,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private BitmapSource? _templateBitmap;
     public BitmapSource? TemplateBitmap { get => _templateBitmap; set => Set(ref _templateBitmap, value); }
 
-    // ÂÖÀªÆ¥ÅäÊ±£¬Ä£°å±ßÔµĞÎ×´µÄÂÌÉ«µş¼ÓÍ¼£¨ÓëÆ¥Åä½á¹ûÂÌ¿ò¹²ÓÃÍ¬Ò» XAML ×ø±êÏµ£¬±£Ö¤¶ÔÆë/¿É¼û£©¡£
+    // è½®å»“åŒ¹é…æ—¶ï¼Œæ¨¡æ¿è¾¹ç¼˜å½¢çŠ¶çš„ç»¿è‰²å åŠ å›¾ï¼ˆä¸åŒ¹é…ç»“æœç»¿æ¡†å…±ç”¨åŒä¸€ XAML åæ ‡ç³»ï¼Œä¿è¯å¯¹é½/å¯è§ï¼‰ã€‚
     private BitmapSource? _templateContourOverlay;
     public BitmapSource? TemplateContourOverlay { get => _templateContourOverlay; set => Set(ref _templateContourOverlay, value); }
 
@@ -103,22 +112,22 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private string _statusText = "";
     public string StatusText { get => _statusText; set => Set(ref _statusText, value); }
 
-    private string _imageSizeText = "¡ª";
+    private string _imageSizeText = "â€”";
     public string ImageSizeText { get => _imageSizeText; set => Set(ref _imageSizeText, value); }
 
-    private string _templateSizeText = "¡ª";
+    private string _templateSizeText = "â€”";
     public string TemplateSizeText { get => _templateSizeText; set => Set(ref _templateSizeText, value); }
 
-    private string _matchMsText = "¡ª";
+    private string _matchMsText = "â€”";
     public string MatchMsText { get => _matchMsText; set => Set(ref _matchMsText, value); }
 
     private string _defectSummaryText = "-";
     public string DefectSummaryText { get => _defectSummaryText; set => Set(ref _defectSummaryText, value); }
 
-    private string _computerConfigText = "¡ª";
+    private string _computerConfigText = "â€”";
     public string ComputerConfigText { get => _computerConfigText; set => Set(ref _computerConfigText, value); }
 
-    private string _influenceFactorsText = "¡ª";
+    private string _influenceFactorsText = "â€”";
     public string InfluenceFactorsText { get => _influenceFactorsText; set => Set(ref _influenceFactorsText, value); }
 
     #endregion
@@ -179,7 +188,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private void AutoMatchTimer_Tick(object? sender, EventArgs e)
     {
         if (!_autoMatchDirty) { _autoMatchTimer.Stop(); return; }
-        if (!BtnMatch.IsEnabled) return; // ÕıÔÚÆ¥Åä£¨ÊÖ¶¯»òÉÏÒ»ÂÖ×Ô¶¯£©£¬µÈÏÂÒ»ÅÄ
+        if (!BtnMatch.IsEnabled) return; // æ­£åœ¨åŒ¹é…ï¼ˆæ‰‹åŠ¨æˆ–ä¸Šä¸€è½®è‡ªåŠ¨ï¼‰ï¼Œç­‰ä¸‹ä¸€æ‹
         if (!_matcher.HasSource || _matcher.Template == null) { _autoMatchDirty = false; _autoMatchTimer.Stop(); return; }
         _autoMatchDirty = false;
         _ = RunMatchAsync(silent: true);
@@ -227,16 +236,16 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         if (_imageFiles.Count > 0)
         {
             LstImages.SelectedIndex = 0; // triggers SelectionChanged -> load + auto-match (if template exists)
-            StatusText = $"ÒÑ´ò¿ªÎÄ¼ş¼Ğ£º{folder}£¨¹² {_imageFiles.Count} ÕÅÍ¼Æ¬£¬µã»÷ÇĞ»»¼´ÔØÈë²¢×Ô¶¯Æ¥Åä£©";
+            StatusText = $"å·²æ‰“å¼€æ–‡ä»¶å¤¹ï¼š{folder}ï¼ˆå…± {_imageFiles.Count} å¼ å›¾ç‰‡ï¼Œç‚¹å‡»åˆ‡æ¢å³è½½å…¥å¹¶è‡ªåŠ¨åŒ¹é…ï¼‰";
         }
         else
         {
             LstImages.ItemsSource = null;
-            StatusText = "¸ÃÎÄ¼ş¼ĞÀïÃ»ÓĞÍ¼Æ¬";
+            StatusText = "è¯¥æ–‡ä»¶å¤¹é‡Œæ²¡æœ‰å›¾ç‰‡";
         }
     }
 
-    // ÇĞÍ¼¼´ÔØÈë£»ÈôÒÑ´´½¨Ä£°åÔò×Ô¶¯Æ¥Åä£¨Âú×ã¡¸µã»÷ÇĞ»»¼´×Ô¶¯²éÕÒ¡¹£©¡£
+    // åˆ‡å›¾å³è½½å…¥ï¼›è‹¥å·²åˆ›å»ºæ¨¡æ¿åˆ™è‡ªåŠ¨åŒ¹é…ï¼ˆæ»¡è¶³ã€Œç‚¹å‡»åˆ‡æ¢å³è‡ªåŠ¨æŸ¥æ‰¾ã€ï¼‰ã€‚
     private async void LstImages_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         await DebouncedSelectAsync();
@@ -251,13 +260,13 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         _selCts?.Cancel();
         _selCts = new CancellationTokenSource();
         var token = _selCts.Token;
-        try { await Task.Delay(150, token); }   // ·À¶¶£º¿ìËÙµãÑ¡Ö»ÈÏ×îºóÒ»´Î
+        try { await Task.Delay(150, token); }   // é˜²æŠ–ï¼šå¿«é€Ÿç‚¹é€‰åªè®¤æœ€åä¸€æ¬¡
         catch (OperationCanceledException) { return; }
 
         await LoadSourceFromPathAsync(path, token);
-        if (token.IsCancellationRequested) return; // ±»ĞÂÑ¡ÔñÈ¡´ú£¬°²¾²ÍË³ö£¬²»Å×Òì³£
+        if (token.IsCancellationRequested) return; // è¢«æ–°é€‰æ‹©å–ä»£ï¼Œå®‰é™é€€å‡ºï¼Œä¸æŠ›å¼‚å¸¸
 
-        // ÒÑ´´½¨Ä£°åÊ±£¬ÇĞ»»Í¼Æ¬ºó×Ô¶¯Æ¥Åä£»ÎŞÄ£°åÔò²»µ¯´°¡¢Ö»ÔØÈë¡£
+        // å·²åˆ›å»ºæ¨¡æ¿æ—¶ï¼Œåˆ‡æ¢å›¾ç‰‡åè‡ªåŠ¨åŒ¹é…ï¼›æ— æ¨¡æ¿åˆ™ä¸å¼¹çª—ã€åªè½½å…¥ã€‚
         if (_matcher.Template != null)
         {
             await RunMatchAsync();
@@ -278,18 +287,18 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             RefreshDisplayBitmap();
             ImageWidth = mat.Width;
             ImageHeight = mat.Height;
-            ImageSizeText = $"{mat.Width} ¡Á {mat.Height}";
+            ImageSizeText = $"{mat.Width} Ã— {mat.Height}";
 
             if (_matcher.Template != null)
             {
                 var t = _matcher.Template;
-                TemplateSizeText = $"{t.Width} ¡Á {t.Height}";
+                TemplateSizeText = $"{t.Width} Ã— {t.Height}";
                 _templateW = t.Width;
                 _templateH = t.Height;
             }
             else
             {
-                TemplateSizeText = "¡ª";
+                TemplateSizeText = "â€”";
                 _templateW = 0;
                 _templateH = 0;
             }
@@ -297,15 +306,15 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             Results.Clear();
             Defects.Clear();
             DefectSummaryText = "-";
-            MatchMsText = "¡ª";
+            MatchMsText = "â€”";
             ClearRoi();
             UpdateInfluenceFactors();
-            StatusText = $"ÒÑÔØÈë£º{Path.GetFileName(path)}";
+            StatusText = $"å·²è½½å…¥ï¼š{Path.GetFileName(path)}";
         }
-        catch (OperationCanceledException) { /* ±»ĞÂÑ¡ÔñÈ¡Ïû£¬°²¾²ÍË³ö */ }
+        catch (OperationCanceledException) { /* è¢«æ–°é€‰æ‹©å–æ¶ˆï¼Œå®‰é™é€€å‡º */ }
         catch (Exception ex)
         {
-            StatusText = $"ÔØÈëÊ§°Ü£º{ex.Message}";
+            StatusText = $"è½½å…¥å¤±è´¥ï¼š{ex.Message}";
         }
         finally
         {
@@ -321,33 +330,33 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     {
         if (SourceBitmap == null)
         {
-            MessageBox.Show("ÇëÏÈ´ò¿ªÍ¼Ïñ¡£", "ÌáÊ¾", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show("è¯·å…ˆæ‰“å¼€å›¾åƒã€‚", "æç¤º", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
-        // ÈÎºÎÊ±ºò¶¼ÄÜ»­¿ò£»µã¡¸´´½¨Ä£°å¡¹²Å°Ñµ±Ç°¿ò´æ³ÉÄ£°å¡£
+        // ä»»ä½•æ—¶å€™éƒ½èƒ½ç”»æ¡†ï¼›ç‚¹ã€Œåˆ›å»ºæ¨¡æ¿ã€æ‰æŠŠå½“å‰æ¡†å­˜æˆæ¨¡æ¿ã€‚
         int x = (int)Math.Max(0, RoiLeft);
         int y = (int)Math.Max(0, RoiTop);
         int w = (int)Math.Min(ImageWidth - x, RoiWidth);
         int h = (int)Math.Min(ImageHeight - y, RoiHeight);
         if (w < 8 || h < 8)
         {
-            MessageBox.Show("ÇëÏÈÔÚÍ¼Æ¬ÉÏÍÏÒ»¸ö¿òÑ¡ºÃÒªÕÒµÄÄ¿±ê£¬ÔÙµã¡¸´´½¨Ä£°å¡¹¡£", "ÌáÊ¾", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show("è¯·å…ˆåœ¨å›¾ç‰‡ä¸Šæ‹–ä¸€ä¸ªæ¡†é€‰å¥½è¦æ‰¾çš„ç›®æ ‡ï¼Œå†ç‚¹ã€Œåˆ›å»ºæ¨¡æ¿ã€ã€‚", "æç¤º", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
         _matcher.SetTemplateFromRoi(new OpenCvSharp.Rect(x, y, w, h));
         var tpl = _matcher.Template!;
-        TemplateSizeText = $"{tpl.Width} ¡Á {tpl.Height}";
+        TemplateSizeText = $"{tpl.Width} Ã— {tpl.Height}";
         _templateW = tpl.Width;
         _templateH = tpl.Height;
-        RefreshTemplateVisuals();   // ÂÖÀªÄ£Ê½¿ªÊ±×ó²àÏÔÊ¾ÂÌÉ«ÂÖÀª£¬¹ØÊ±Ö»ÏÔÊ¾»Ò¶ÈÄ£°å
+        RefreshTemplateVisuals();   // è½®å»“æ¨¡å¼å¼€æ—¶å·¦ä¾§æ˜¾ç¤ºç»¿è‰²è½®å»“ï¼Œå…³æ—¶åªæ˜¾ç¤ºç°åº¦æ¨¡æ¿
         _ = SaveTemplateAsync(tpl);
         UpdateInfluenceFactors();
-        StatusText = $"Ä£°åÒÑ×öºÃ£¬´óĞ¡ {w}¡Á{h}£¨ÏÔÊ¾ÔÚ×ó²à£©¡£µã¡¸¿ªÊ¼²éÕÒ¡¹ÔÚ¸ÃÍ¼ÉÏÕÒÄ¿±ê";
+        StatusText = $"æ¨¡æ¿å·²åšå¥½ï¼Œå¤§å° {w}Ã—{h}ï¼ˆæ˜¾ç¤ºåœ¨å·¦ä¾§ï¼‰ã€‚ç‚¹ã€Œå¼€å§‹æŸ¥æ‰¾ã€åœ¨è¯¥å›¾ä¸Šæ‰¾ç›®æ ‡";
     }
 
     private async void ImageGrid_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        if (SourceBitmap == null) return;     // ÈÎºÎÊ±ºò¶¼ÔÊĞí»­¿ò£¬²»ÒÀÀµ¡¸´´½¨Ä£°å¡¹°´Å¥
+        if (SourceBitmap == null) return;     // ä»»ä½•æ—¶å€™éƒ½å…è®¸ç”»æ¡†ï¼Œä¸ä¾èµ–ã€Œåˆ›å»ºæ¨¡æ¿ã€æŒ‰é’®
         _roiStart = e.GetPosition(ImageGrid);
         RoiLeft = _roiStart.X;
         RoiTop = _roiStart.Y;
@@ -373,12 +382,12 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         if (SourceBitmap == null) return;
         ImageGrid.ReleaseMouseCapture();
 
-        // ËÉÊÖÖ»ÊÇÈ·ÈÏ¿òÑ¡£»Ä£°åÒªµÈÓÃ»§µã¡¸´´½¨Ä£°å¡¹²ÅÉú³É¡£
+        // æ¾æ‰‹åªæ˜¯ç¡®è®¤æ¡†é€‰ï¼›æ¨¡æ¿è¦ç­‰ç”¨æˆ·ç‚¹ã€Œåˆ›å»ºæ¨¡æ¿ã€æ‰ç”Ÿæˆã€‚
         int w = (int)RoiWidth, h = (int)RoiHeight;
         if (w >= 8 && h >= 8)
-            StatusText = "¿òÒÑÑ¡ºÃ£ºµã¡¸´´½¨Ä£°å¡¹°ÑËü´æÎªÄ£°å£¨ÔÙÍÏÒ»´Î¿ÉÖØĞÂ¿òÑ¡£©";
+            StatusText = "æ¡†å·²é€‰å¥½ï¼šç‚¹ã€Œåˆ›å»ºæ¨¡æ¿ã€æŠŠå®ƒå­˜ä¸ºæ¨¡æ¿ï¼ˆå†æ‹–ä¸€æ¬¡å¯é‡æ–°æ¡†é€‰ï¼‰";
         else
-            StatusText = "¿òÌ«Ğ¡£¬ÇëÖØĞÂÍÏÒ»¸ö¸ü´óµÄ¿ò£¬È»ºóµã¡¸´´½¨Ä£°å¡¹";
+            StatusText = "æ¡†å¤ªå°ï¼Œè¯·é‡æ–°æ‹–ä¸€ä¸ªæ›´å¤§çš„æ¡†ï¼Œç„¶åç‚¹ã€Œåˆ›å»ºæ¨¡æ¿ã€";
     }
 
     #endregion
@@ -390,13 +399,13 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         _autoMatchDirty = false;
         if (!_matcher.HasSource)
         {
-            if (!silent) MessageBox.Show("ÇëÏÈ´ò¿ªÒ»ÕÅÍ¼Æ¬¡£", "ÌáÊ¾", MessageBoxButton.OK, MessageBoxImage.Information);
+            if (!silent) MessageBox.Show("è¯·å…ˆæ‰“å¼€ä¸€å¼ å›¾ç‰‡ã€‚", "æç¤º", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
 
         if (_matcher.Template == null)
         {
-            if (!silent) MessageBox.Show("ÇëÏÈ´´½¨Ä£°å¡£", "ÌáÊ¾", MessageBoxButton.OK, MessageBoxImage.Information);
+            if (!silent) MessageBox.Show("è¯·å…ˆåˆ›å»ºæ¨¡æ¿ã€‚", "æç¤º", MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
 
@@ -414,7 +423,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         double overlap = SldOverlap.Value;
         int topN = (int)System.Math.Round(SldTopN.Value);
 
-        StatusText = "ÕıÔÚ²éÕÒ£¬ÇëÉÔºò...";
+        StatusText = "æ­£åœ¨æŸ¥æ‰¾ï¼Œè¯·ç¨å€™...";
 
         List<MatchResult> results;
         try
@@ -425,14 +434,14 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         }
         catch (OperationCanceledException)
         {
-            StatusText = "ÒÑÈ¡Ïû²éÕÒ";
+            StatusText = "å·²å–æ¶ˆæŸ¥æ‰¾";
             BtnMatch.IsEnabled = true;
             return;
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Æ¥ÅäÊ§°Ü: {ex.Message}", "´íÎó", MessageBoxButton.OK, MessageBoxImage.Error);
-            StatusText = "²éÕÒÊ§°ÜÁË";
+            MessageBox.Show($"åŒ¹é…å¤±è´¥: {ex.Message}", "é”™è¯¯", MessageBoxButton.OK, MessageBoxImage.Error);
+            StatusText = "æŸ¥æ‰¾å¤±è´¥äº†";
             BtnMatch.IsEnabled = true;
             return;
         }
@@ -441,24 +450,24 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         Results.AddRange(results);
 
         Defects.Clear();
-        // ÂÌÉ«ÂÖÀªÏß¸ÄÎª XAML µş¼Ó²ã£¨ÓëÂÌ¿ò¹²ÓÃ×ø±êÏµ£©£¬ÕâÀïÖ»¸ºÔğºìÉ«È±ÏİÏñËØÓëÇåÆÁ¡£
+        // ç»¿è‰²è½®å»“çº¿æ”¹ä¸º XAML å åŠ å±‚ï¼ˆä¸ç»¿æ¡†å…±ç”¨åæ ‡ç³»ï¼‰ï¼Œè¿™é‡Œåªè´Ÿè´£çº¢è‰²ç¼ºé™·åƒç´ ä¸æ¸…å±ã€‚
         if (_defectEnabled)
         {
             var defects = await Task.Run(() => _matcher.DetectDefects(results), token);
             if (token.IsCancellationRequested) { BtnMatch.IsEnabled = true; return; }
             Defects.AddRange(defects);
             DefectSummaryText = BuildDefectSummary(defects);
-            RefreshDisplayBitmap(defects);   // »­ºì
+            RefreshDisplayBitmap(defects);   // ç”»çº¢
             _paintedRed = defects.Count > 0;
-            StatusText = $"²éÕÒÍê³É£º¹²ÕÒµ½ {results.Count} ¸öÄ¿±ê£¬ÆäÖĞ {defects.Count} ´¦ÓĞÈ±Ïİ£¬ÓÃÊ± {_matcher.LastMatchMs:F1} ºÁÃë";
+            StatusText = $"æŸ¥æ‰¾å®Œæˆï¼šå…±æ‰¾åˆ° {results.Count} ä¸ªç›®æ ‡ï¼Œå…¶ä¸­ {defects.Count} å¤„æœ‰ç¼ºé™·ï¼Œç”¨æ—¶ {_matcher.LastMatchMs:F1} æ¯«ç§’";
         }
         else
         {
             DefectSummaryText = "-";
-            // ÉÏÒ»ÂÖ»­¹ıºì¡¢±¾ÂÖÃ»»­£¬²ÅĞèÒªÖØ»æÇåºì£¨Ê¡Ò»´Î´ó¿½±´£©¡£ÂÌÉ«ÂÖÀªÓÉ XAML µş¼Ó²ã´¦Àí¡£
+            // ä¸Šä¸€è½®ç”»è¿‡çº¢ã€æœ¬è½®æ²¡ç”»ï¼Œæ‰éœ€è¦é‡ç»˜æ¸…çº¢ï¼ˆçœä¸€æ¬¡å¤§æ‹·è´ï¼‰ã€‚ç»¿è‰²è½®å»“ç”± XAML å åŠ å±‚å¤„ç†ã€‚
             if (_paintedRed) RefreshDisplayBitmap(null);
             _paintedRed = false;
-            StatusText = $"²éÕÒÍê³É£º¹²ÕÒµ½ {results.Count} ¸öÄ¿±ê£¬ÓÃÊ± {_matcher.LastMatchMs:F1} ºÁÃë";
+            StatusText = $"æŸ¥æ‰¾å®Œæˆï¼šå…±æ‰¾åˆ° {results.Count} ä¸ªç›®æ ‡ï¼Œç”¨æ—¶ {_matcher.LastMatchMs:F1} æ¯«ç§’";
         }
         MatchMsText = $"{_matcher.LastMatchMs:F1} ms";
         BtnMatch.IsEnabled = true;
@@ -472,7 +481,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         DefectSummaryText = "-";
         RefreshDisplayBitmap(); // remove any painted red from a previous run
         ClearRoi();
-        StatusText = "½á¹ûÒÑÇå¿Õ£¬ÂÌ¿òÒÑÈ¥µô";
+        StatusText = "ç»“æœå·²æ¸…ç©ºï¼Œç»¿æ¡†å·²å»æ‰";
     }
 
     private void ClearRoi()
@@ -484,7 +493,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     {
         _defectEnabled = ChkDefect.IsChecked == true;
         DefectSummaryText = "-";
-        StatusText = _defectEnabled ? "ÒÑ¿ªÆôÈ±Ïİ¼ì²é" : "ÒÑ¹Ø±ÕÈ±Ïİ¼ì²é";
+        StatusText = _defectEnabled ? "å·²å¼€å¯ç¼ºé™·æ£€æŸ¥" : "å·²å…³é—­ç¼ºé™·æ£€æŸ¥";
         SaveSettings();
     }
 
@@ -492,16 +501,16 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     {
         bool on = ChkContour.IsChecked == true;
         _matcher.UseContour = on;
-        // ÖØĞÂÉú³ÉÂÖÀª£¨º¬µ±Ç°²ÎÊı£©£¬²¢Ë¢ĞÂ×ó²àÄ£°åÔ¤ÀÀÓëÂÌÉ«µş¼ÓÍ¼
+        // é‡æ–°ç”Ÿæˆè½®å»“ï¼ˆå«å½“å‰å‚æ•°ï¼‰ï¼Œå¹¶åˆ·æ–°å·¦ä¾§æ¨¡æ¿é¢„è§ˆä¸ç»¿è‰²å åŠ å›¾
         _matcher.RecomputeContours();
         RefreshTemplateVisuals();
-        StatusText = on ? "ÒÑ¿ªÆôÂÖÀªÆ¥Åä£¨ÓÃ±ßÔµÌİ¶ÈÍ¼£¬¿¹¹âÕÕ±ä»¯£»Ä¿±ê»áÓÃÂÌÉ«ÏßÌõ»­³öÄ£°åĞÎ×´£©" : "ÒÑ¹Ø±ÕÂÖÀªÆ¥Åä£¨ÓÃ»Ò¶ÈÍ¼£©";
+        StatusText = on ? "å·²å¼€å¯è½®å»“åŒ¹é…ï¼ˆç”¨è¾¹ç¼˜æ¢¯åº¦å›¾ï¼ŒæŠ—å…‰ç…§å˜åŒ–ï¼›ç›®æ ‡ä¼šç”¨ç»¿è‰²çº¿æ¡ç”»å‡ºæ¨¡æ¿å½¢çŠ¶ï¼‰" : "å·²å…³é—­è½®å»“åŒ¹é…ï¼ˆç”¨ç°åº¦å›¾ï¼‰";
         SaveSettings();
     }
 
     private static string BuildDefectSummary(List<DefectResult> defects)
     {
-        if (defects == null || defects.Count == 0) return "Î´·¢ÏÖÈ±Ïİ";
+        if (defects == null || defects.Count == 0) return "æœªå‘ç°ç¼ºé™·";
         var counts = new Dictionary<string, int>();
         foreach (var d in defects)
         {
@@ -510,7 +519,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         }
         var parts = new List<string>();
         foreach (var kv in counts) parts.Add(kv.Key + ": " + kv.Value);
-        return "È±Ïİ " + defects.Count + " ´¦ (" + string.Join(", ", parts) + ")";
+        return "ç¼ºé™· " + defects.Count + " å¤„ (" + string.Join(", ", parts) + ")";
     }
 
     #endregion
@@ -543,7 +552,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             var px = new byte[dstStride * h];
             Marshal.Copy(back, px, 0, px.Length);
 
-            // ºìÉ«£ºÈ±ÏİÏñËØ
+            // çº¢è‰²ï¼šç¼ºé™·åƒç´ 
             if (defects != null && defects.Count > 0)
             {
                 foreach (var d in defects)
@@ -597,9 +606,9 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     }
 
     /// <summary>
-    /// °ÑÄ£°å±ßÔµ¶şÖµÑÚÂëäÖÈ¾³ÉÒ»ÕÅ¡¸Í¸Ã÷µ× + ÂÌÉ«ÏßÌõ¡¹µÄĞ¡Í¼£¨Ä£°å³ß´ç£©£¬
-    /// ¹© XAML µş¼Ó²ãÔÚÃ¿¸öÆ¥Åä½á¹ûÉÏ°´½Ç¶ÈĞı×ªÏÔÊ¾¡£ÓëÂÌ¿ò¹²ÓÃÍ¬Ò»×ø±êÏµ£¬±£Ö¤¶ÔÆë¿É¼û¡£
-    /// ÂÖÀªÄ£Ê½¹Ø±Õ»ò»¹Ã»½¨Ä£°åÊ±·µ»Ø null£¨²»ÏÔÊ¾£©¡£
+    /// æŠŠæ¨¡æ¿è¾¹ç¼˜äºŒå€¼æ©ç æ¸²æŸ“æˆä¸€å¼ ã€Œé€æ˜åº• + ç»¿è‰²çº¿æ¡ã€çš„å°å›¾ï¼ˆæ¨¡æ¿å°ºå¯¸ï¼‰ï¼Œ
+    /// ä¾› XAML å åŠ å±‚åœ¨æ¯ä¸ªåŒ¹é…ç»“æœä¸ŠæŒ‰è§’åº¦æ—‹è½¬æ˜¾ç¤ºã€‚ä¸ç»¿æ¡†å…±ç”¨åŒä¸€åæ ‡ç³»ï¼Œä¿è¯å¯¹é½å¯è§ã€‚
+    /// è½®å»“æ¨¡å¼å…³é—­æˆ–è¿˜æ²¡å»ºæ¨¡æ¿æ—¶è¿”å› nullï¼ˆä¸æ˜¾ç¤ºï¼‰ã€‚
     /// </summary>
     private BitmapSource? BuildContourOverlay()
     {
@@ -617,7 +626,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             {
                 if (mask[baseOff + x] == 0) continue;
                 int idx = y * stride + x * 4;
-                px[idx] = 0; px[idx + 1] = 255; px[idx + 2] = 0; px[idx + 3] = 255; // ÂÌ¡¢²»Í¸Ã÷
+                px[idx] = 0; px[idx + 1] = 255; px[idx + 2] = 0; px[idx + 3] = 255; // ç»¿ã€ä¸é€æ˜
             }
         }
         Marshal.Copy(px, 0, wb.BackBuffer, px.Length);
@@ -628,8 +637,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     }
 
     /// <summary>
-    /// °Ñ»Ò¶ÈÄ£°åäÖÈ¾Îª¡¸»Ò¶Èµ× + ÂÌÉ«ÂÖÀªÏßÌõ¡¹µÄÔ¤ÀÀÍ¼£¨Bgr24£©£¬ÓÃÓÚ×ó²àÄ£°åÔ¤ÀÀ¡£
-    /// ¹´Ñ¡ÂÖÀªÆ¥ÅäÊ±ÏÔÊ¾£¬µ÷²Î£¨ãĞÖµ/Æ½»¬£©Ê±»áÊµÊ±Ë¢ĞÂ¡£
+    /// æŠŠç°åº¦æ¨¡æ¿æ¸²æŸ“ä¸ºã€Œç°åº¦åº• + ç»¿è‰²è½®å»“çº¿æ¡ã€çš„é¢„è§ˆå›¾ï¼ˆBgr24ï¼‰ï¼Œç”¨äºå·¦ä¾§æ¨¡æ¿é¢„è§ˆã€‚
+    /// å‹¾é€‰è½®å»“åŒ¹é…æ—¶æ˜¾ç¤ºï¼Œè°ƒå‚ï¼ˆé˜ˆå€¼/å¹³æ»‘ï¼‰æ—¶ä¼šå®æ—¶åˆ·æ–°ã€‚
     /// </summary>
     private BitmapSource? BuildTemplateContourPreview()
     {
@@ -663,7 +672,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 {
                     if (mask[baseOff + x] == 0) continue;
                     int idx = drow + x * 3;
-                    px[idx] = 0; px[idx + 1] = 255; px[idx + 2] = 0;   // ÂÌ
+                    px[idx] = 0; px[idx + 1] = 255; px[idx + 2] = 0;   // ç»¿
                 }
             }
         }
@@ -675,10 +684,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     }
 
     /// <summary>
-    /// ¸ù¾İÊÇ·ñ¹´Ñ¡¡¸ÂÖÀªÆ¥Åä¡¹Ë¢ĞÂ×ó²àÄ£°åÔ¤ÀÀ£º
-    /// - ÂÖÀªÄ£Ê½£ºÏÔÊ¾»Ò¶ÈÄ£°å + ÂÌÉ«ÂÖÀªÏßÌõ£¨TemplateBitmap£©£¬²¢ÖØ½¨ÓÃÓÚÆ¥Åä½á¹ûµş¼ÓµÄÂÌÉ«ÂÖÀªÍ¼£»
-    /// - »Ò¶ÈÄ£Ê½£ºÖ»ÏÔÊ¾»Ò¶ÈÄ£°å£¬Çå¿ÕÂÌÉ«ÂÖÀªµş¼Ó¡£
-    /// µ÷²Î£¨ãĞÖµ/Æ½»¬£©Ê±Ò²»áµ÷ÓÃ£¬Ê¹ÂÌÉ«ÂÖÀªÊµÊ±Ë¢ĞÂµ½Ä£°åÍ¼Æ¬ÉÏ¡£
+    /// æ ¹æ®æ˜¯å¦å‹¾é€‰ã€Œè½®å»“åŒ¹é…ã€åˆ·æ–°å·¦ä¾§æ¨¡æ¿é¢„è§ˆï¼š
+    /// - è½®å»“æ¨¡å¼ï¼šæ˜¾ç¤ºç°åº¦æ¨¡æ¿ + ç»¿è‰²è½®å»“çº¿æ¡ï¼ˆTemplateBitmapï¼‰ï¼Œå¹¶é‡å»ºç”¨äºåŒ¹é…ç»“æœå åŠ çš„ç»¿è‰²è½®å»“å›¾ï¼›
+    /// - ç°åº¦æ¨¡å¼ï¼šåªæ˜¾ç¤ºç°åº¦æ¨¡æ¿ï¼Œæ¸…ç©ºç»¿è‰²è½®å»“å åŠ ã€‚
+    /// è°ƒå‚ï¼ˆé˜ˆå€¼/å¹³æ»‘ï¼‰æ—¶ä¹Ÿä¼šè°ƒç”¨ï¼Œä½¿ç»¿è‰²è½®å»“å®æ—¶åˆ·æ–°åˆ°æ¨¡æ¿å›¾ç‰‡ä¸Šã€‚
     /// </summary>
     private void RefreshTemplateVisuals()
     {
@@ -702,34 +711,34 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     }
 
     /// <summary>
-    /// ÂÖÀªÆ¥Åä²ÎÊı£¨ãĞÖµ/Æ½»¬£©±ä»¯Ê±µ÷ÓÃ£º°Ñ²ÎÊıÍÆÈë matcher£¬ÖØĞÂÉú³É±ßÔµÑÚÂë£¬
-    /// ²¢ÊµÊ±Ë¢ĞÂ×ó²àÄ£°åÔ¤ÀÀµÄÂÌÉ«ÂÖÀª¡£½öÔÚÒÑ¹´Ñ¡ÂÖÀªÆ¥ÅäÇÒÒÑÓĞÄ£°åÊ±ÉúĞ§¡£
+    /// è½®å»“åŒ¹é…å‚æ•°ï¼ˆé˜ˆå€¼/å¹³æ»‘ï¼‰å˜åŒ–æ—¶è°ƒç”¨ï¼šæŠŠå‚æ•°æ¨å…¥ matcherï¼Œé‡æ–°ç”Ÿæˆè¾¹ç¼˜æ©ç ï¼Œ
+    /// å¹¶å®æ—¶åˆ·æ–°å·¦ä¾§æ¨¡æ¿é¢„è§ˆçš„ç»¿è‰²è½®å»“ã€‚ä»…åœ¨å·²å‹¾é€‰è½®å»“åŒ¹é…ä¸”å·²æœ‰æ¨¡æ¿æ—¶ç”Ÿæ•ˆã€‚
     /// </summary>
     private void ContourParam_Changed(object sender, RoutedEventArgs e)
     {
-        // InitializeComponent ÉèÖÃ Slider.Value Ê±»áÏÈ´¥·¢ ValueChanged£¬´ËÊ±ÃüÃû×Ö¶Î¿ÉÄÜ»¹Î´¸³Öµ¡£
+        // InitializeComponent è®¾ç½® Slider.Value æ—¶ä¼šå…ˆè§¦å‘ ValueChangedï¼Œæ­¤æ—¶å‘½åå­—æ®µå¯èƒ½è¿˜æœªèµ‹å€¼ã€‚
         if (SldContourBlur == null || SldContourThreshold == null || SldScaleRange == null) return;
         if (TbContourBlurVal == null || TbContourThresholdVal == null || TbScaleRangeVal == null) return;
 
         double blur = SldContourBlur.Value;
         int thr = (int)SldContourThreshold.Value;
         double scaleRange = SldScaleRange.Value;
-        // Í¬²½ÏÔÊ¾ÊıÖµ
+        // åŒæ­¥æ˜¾ç¤ºæ•°å€¼
         TbContourBlurVal.Text = blur.ToString("0");
         TbContourThresholdVal.Text = thr.ToString();
         TbScaleRangeVal.Text = scaleRange.ToString("0.00");
         _matcher.ContourThreshold = thr;
         _matcher.ContourBlur = blur;
-        _matcher.ScaleRange = scaleRange;   // ¶à³ß¶È·¶Î§£¨Ä£°å´óĞ¡±¶Êı£©
+        _matcher.ScaleRange = scaleRange;   // å¤šå°ºåº¦èŒƒå›´ï¼ˆæ¨¡æ¿å¤§å°å€æ•°ï¼‰
         if (ChkContour.IsChecked == true && _matcher.Template != null)
         {
             _matcher.RecomputeContours();
             RefreshTemplateVisuals();
-            StatusText = $"ÂÖÀª²ÎÊıÒÑ¸üĞÂ£ºÆ½»¬={blur}£¬ãĞÖµ={thr}£¬¶à³ß¶È={scaleRange:0.00}£¨Ô½´ó±ßÔ½ÉÙ£©";
+            StatusText = $"è½®å»“å‚æ•°å·²æ›´æ–°ï¼šå¹³æ»‘={blur}ï¼Œé˜ˆå€¼={thr}ï¼Œå¤šå°ºåº¦={scaleRange:0.00}ï¼ˆè¶Šå¤§è¾¹è¶Šå°‘ï¼‰";
         }
         else if (scaleRange > 0)
         {
-            StatusText = $"ÒÑ¿ªÆô¶à³ß¶ÈÆ¥Åä£ºÄ£°å´óĞ¡·¶Î§ {1 - scaleRange:0.00}¡Á~{1 + scaleRange:0.00}¡Á";
+            StatusText = $"å·²å¼€å¯å¤šå°ºåº¦åŒ¹é…ï¼šæ¨¡æ¿å¤§å°èŒƒå›´ {1 - scaleRange:0.00}Ã—~{1 + scaleRange:0.00}Ã—";
         }
         SaveSettings();
     }
@@ -744,7 +753,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private static readonly string TemplateFile = Path.Combine(AppDataDir, "template.png");
     private static readonly string SettingsFile = Path.Combine(AppDataDir, "settings.json");
 
-    // ËùÓĞÆ¥Åä/ÂÖÀª²ÎÊı×Ô¶¯±£´æ×Ô¶¯ÔØÈë£»JSON ½ö´æ UI ¿Ø¼şµÄÖµ£¬Æô¶¯Ê±»ØÌî¿Ø¼ş¼´¿É¡£
+    // æ‰€æœ‰åŒ¹é…/è½®å»“å‚æ•°è‡ªåŠ¨ä¿å­˜è‡ªåŠ¨è½½å…¥ï¼›JSON ä»…å­˜ UI æ§ä»¶çš„å€¼ï¼Œå¯åŠ¨æ—¶å›å¡«æ§ä»¶å³å¯ã€‚
     private sealed class MatchSettings
     {
         public double AngleStart { get; set; } = -180;
@@ -821,7 +830,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             ChkDense.IsChecked = s.Dense;
             ChkDefect.IsChecked = s.Defect;
 
-            // Í¬²½µ½ matcher£¨UseContour ÔÚ RunMatchAsync ÀïÒ²»á°´¹´Ñ¡ÖØÉè£¬ÕâÀïÒ»²¢±£Ö¤Ò»ÖÂ£©
+            // åŒæ­¥åˆ° matcherï¼ˆUseContour åœ¨ RunMatchAsync é‡Œä¹Ÿä¼šæŒ‰å‹¾é€‰é‡è®¾ï¼Œè¿™é‡Œä¸€å¹¶ä¿è¯ä¸€è‡´ï¼‰
             _matcher.ContourThreshold = s.ContourThreshold;
             _matcher.ContourBlur = s.ContourBlur;
             _matcher.ScaleRange = s.ScaleRange;
@@ -845,7 +854,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         try
         {
             Directory.CreateDirectory(AppDataDir);
-            // Ä£°åÊÇ»Ò¶ÈÍ¼£¬Ö±½Ó´æ
+            // æ¨¡æ¿æ˜¯ç°åº¦å›¾ï¼Œç›´æ¥å­˜
             await Task.Run(() => tpl.SaveImage(TemplateFile));
         }
         catch { /* ignore */ }
@@ -855,7 +864,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     {
         try
         {
-            ApplyPersistedSettings();   // ÏÈ»ØÌî²ÎÊı¿Ø¼ş
+            ApplyPersistedSettings();   // å…ˆå›å¡«å‚æ•°æ§ä»¶
 
             if (File.Exists(TemplateFile))
             {
@@ -863,7 +872,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 if (t != null && !t.Empty())
                 {
                     _matcher.SetTemplate(t);
-                    TemplateSizeText = $"{t.Width} ¡Á {t.Height}";
+                    TemplateSizeText = $"{t.Width} Ã— {t.Height}";
                     _templateW = t.Width;
                     _templateH = t.Height;
                     RefreshTemplateVisuals();
@@ -907,10 +916,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         var sb = new StringBuilder();
         try
         {
-            sb.AppendLine("²Ù×÷ÏµÍ³: " + RuntimeInformation.OSDescription.Trim());
-            sb.AppendLine("ÏµÍ³¼Ü¹¹: " + RuntimeInformation.ProcessArchitecture + (Environment.Is64BitProcess ? " (64Î»½ø³Ì)" : " (32Î»½ø³Ì)"));
-            sb.AppendLine("´¦ÀíÆ÷: " + (Environment.GetEnvironmentVariable("PROCESSOR_IDENTIFIER") ?? "Î´Öª"));
-            sb.AppendLine("Âß¼­ºËĞÄÊı: " + Environment.ProcessorCount);
+            sb.AppendLine("æ“ä½œç³»ç»Ÿ: " + RuntimeInformation.OSDescription.Trim());
+            sb.AppendLine("ç³»ç»Ÿæ¶æ„: " + RuntimeInformation.ProcessArchitecture + (Environment.Is64BitProcess ? " (64ä½è¿›ç¨‹)" : " (32ä½è¿›ç¨‹)"));
+            sb.AppendLine("å¤„ç†å™¨: " + (Environment.GetEnvironmentVariable("PROCESSOR_IDENTIFIER") ?? "æœªçŸ¥"));
+            sb.AppendLine("é€»è¾‘æ ¸å¿ƒæ•°: " + Environment.ProcessorCount);
 
             ulong totalPhys = 0;
             try
@@ -920,7 +929,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             }
             catch { }
             if (totalPhys > 0)
-                sb.AppendLine("ÎïÀíÄÚ´æ: " + (totalPhys / 1024.0 / 1024.0 / 1024.0).ToString("F1") + " GB");
+                sb.AppendLine("ç‰©ç†å†…å­˜: " + (totalPhys / 1024.0 / 1024.0 / 1024.0).ToString("F1") + " GB");
 
             string ocv = "4.8.0";
             try
@@ -930,13 +939,13 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             }
             catch { }
             sb.AppendLine("OpenCV: " + ocv + " (OpenCvSharp4 4.8.0)");
-            sb.AppendLine("ÔËĞĞ¿ò¼Ü: " + RuntimeInformation.FrameworkDescription);
-            sb.AppendLine("²¢ĞĞ¼ÆËã: OpenMP x " + Environment.ProcessorCount + " Ïß³Ì");
+            sb.AppendLine("è¿è¡Œæ¡†æ¶: " + RuntimeInformation.FrameworkDescription);
+            sb.AppendLine("å¹¶è¡Œè®¡ç®—: OpenMP x " + Environment.ProcessorCount + " çº¿ç¨‹");
         }
         catch (Exception ex)
         {
             sb.Clear();
-            sb.AppendLine("ÅäÖÃ¶ÁÈ¡Ê§°Ü: " + ex.Message);
+            sb.AppendLine("é…ç½®è¯»å–å¤±è´¥: " + ex.Message);
         }
         ComputerConfigText = sb.ToString().TrimEnd();
     }
@@ -958,16 +967,16 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         int angleCount = (step > 1e-9 && end >= start)
             ? (int)System.Math.Floor((end - start) / step) + 1 : 0;
 
-        sb.AppendLine("½Ç¶ÈÉ¨ÃèÊı: " + angleCount);
-        sb.AppendLine("½ğ×ÖËş²ã¼¶: " + pyramid);
-        sb.AppendLine("Í¼Ïñ³ß´ç: " + (ImageWidth > 1 ? $"{ImageWidth} x {ImageHeight}" : "Î´¼ÓÔØ"));
-        sb.AppendLine("Ä£°å³ß´ç: " + (_templateW > 0 ? $"{_templateW} x {_templateH}" : "Î´´´½¨"));
+        sb.AppendLine("è§’åº¦æ‰«ææ•°: " + angleCount);
+        sb.AppendLine("é‡‘å­—å¡”å±‚çº§: " + pyramid);
+        sb.AppendLine("å›¾åƒå°ºå¯¸: " + (ImageWidth > 1 ? $"{ImageWidth} x {ImageHeight}" : "æœªåŠ è½½"));
+        sb.AppendLine("æ¨¡æ¿å°ºå¯¸: " + (_templateW > 0 ? $"{_templateW} x {_templateH}" : "æœªåˆ›å»º"));
         sb.AppendLine("");
-        sb.AppendLine("Ó°ÏìËÙ¶ÈµÄ¿ÉÄÜÒòËØ:");
-        sb.AppendLine("? ½ğ×ÖËş²ã¼¶¡ü -> Ô½¿ì (´Ö²ãÏÈÉ¸ÖÖ×Ó)");
-        sb.AppendLine("? ½Ç¶È·¶Î§/²½³¤¡ü -> Ô½¿ìµ«¾«¶È¡ı");
-        sb.AppendLine("? Í¼Ïñ/Ä£°åÔ½´ó -> ¼ÆËãÁ¿Ô½´ó¡¢Ô½Âı");
-        sb.AppendLine("? ºËĞÄÊı¡ü -> OpenMP ²¢ĞĞÔ½¿ì");
+        sb.AppendLine("å½±å“é€Ÿåº¦çš„å¯èƒ½å› ç´ :");
+        sb.AppendLine("? é‡‘å­—å¡”å±‚çº§â†‘ -> è¶Šå¿« (ç²—å±‚å…ˆç­›ç§å­)");
+        sb.AppendLine("? è§’åº¦èŒƒå›´/æ­¥é•¿â†‘ -> è¶Šå¿«ä½†ç²¾åº¦â†“");
+        sb.AppendLine("? å›¾åƒ/æ¨¡æ¿è¶Šå¤§ -> è®¡ç®—é‡è¶Šå¤§ã€è¶Šæ…¢");
+        sb.AppendLine("? æ ¸å¿ƒæ•°â†‘ -> OpenMP å¹¶è¡Œè¶Šå¿«");
 
         InfluenceFactorsText = sb.ToString().TrimEnd();
     }
@@ -978,7 +987,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     {
         _matchCts?.Cancel();
         _selCts?.Cancel();
-        SaveSettings();   // ¹Ø±ÕÇ°¶µµ×±£´æÈ«²¿²ÎÊı
+        SaveSettings();   // å…³é—­å‰å…œåº•ä¿å­˜å…¨éƒ¨å‚æ•°
         _matcher.Dispose();
         base.OnClosing(e);
     }

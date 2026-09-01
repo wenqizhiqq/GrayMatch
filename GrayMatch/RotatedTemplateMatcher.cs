@@ -1,3 +1,12 @@
+// ============================================================
+// æ¸©å¯å¿—â—†ç¼–å†™â—‡å¾®ä¿¡ï¹•187â—†1936â—‡1399
+// ============================================================
+// ============================================================
+// æ¸©å¯å¿—â—†ç¼–å†™â—‡å¾®ä¿¡ï¹•187â—†1936â—‡1399
+// ============================================================
+// ============================================================
+// æ¸©å¯å¿—â—†ç¼–å†™â—‡å¾®ä¿¡ï¸•187â—†1936â—‡1399
+// ============================================================
 using OpenCvSharp;
 using System.IO;
 using System.Runtime.InteropServices;
@@ -10,12 +19,12 @@ public class RotatedTemplateMatcher : IDisposable
     private Mat? _source;
     private Mat? _template;
     private Mat? _sourceGray;
-    private Mat? _sourceContour;   // ÂÖÀª/Ìİ¶ÈÍ¼£¨ÓÃÓÚÂÖÀªÆ¥ÅäÄ£Ê½£©
+    private Mat? _sourceContour;   // è½®å»“/æ¢¯åº¦å›¾ï¼ˆç”¨äºè½®å»“åŒ¹é…æ¨¡å¼ï¼‰
     private Mat? _templateContour;
-    private byte[]? _templateContourMask;   // Ä£°å±ßÔµ¶şÖµÑÚÂë£¨ÓÃÓÚ UI »­ÂÌÉ«ÂÖÀªÏß£©
+    private byte[]? _templateContourMask;   // æ¨¡æ¿è¾¹ç¼˜äºŒå€¼æ©ç ï¼ˆç”¨äº UI ç”»ç»¿è‰²è½®å»“çº¿ï¼‰
     private int _templateContourMaskW, _templateContourMaskH;
 
-    // ±£»¤ _sourceGray/_template µÈ¹²Ïí Mat£º¼ÓÔØ/ÉèÖÃÓëÆ¥Åä»¥³â£¬·ÀÖ¹Æ¥Åä¹ı³ÌÖĞ Mat ±»ÊÍ·Å¡£
+    // ä¿æŠ¤ _sourceGray/_template ç­‰å…±äº« Matï¼šåŠ è½½/è®¾ç½®ä¸åŒ¹é…äº’æ–¥ï¼Œé˜²æ­¢åŒ¹é…è¿‡ç¨‹ä¸­ Mat è¢«é‡Šæ”¾ã€‚
     private readonly SemaphoreSlim _dataLock = new(1, 1);
 
     public Mat Source => _source ?? throw new InvalidOperationException("Source image not loaded.");
@@ -23,10 +32,10 @@ public class RotatedTemplateMatcher : IDisposable
     public bool HasSource => _sourceGray != null;
 
     /// <summary>
-    /// ÂÖÀªÆ¥Åä¿ª¹Ø¡£¿ªÆôºó£¬Æ¥Åä¸ÄÓÃ¡¸±ßÔµÌİ¶ÈÍ¼¡¹£¨Sobel Ìİ¶È·ù¶È£¬¹éÒ»»¯µ½ 0-255
-    /// µ¥Í¨µÀ£©´úÌæ»Ò¶ÈÍ¼£¬¶Ô¹âÕÕ±ä»¯¡¢Ç°¾°/±³¾°»Ò¶È½Ó½ü¡¢´¿ĞÎ×´ÂÖÀª£¨ÓëÎÆÀíÎŞ¹Ø£©
-    /// µÄÍ¼°¸¸üÂ³°ô¡£È±Ïİ¼ì²âÈÔ»ùÓÚ»Ò¶È²îÒì£¬²»ÊÜÓ°Ïì¡£
-    /// setter »á°´ĞèÉú³É/ÊÍ·ÅÂÖÀªÍ¼£¬±ÜÃâÖØ¸´¼ÆËã¡£
+    /// è½®å»“åŒ¹é…å¼€å…³ã€‚å¼€å¯åï¼ŒåŒ¹é…æ”¹ç”¨ã€Œè¾¹ç¼˜æ¢¯åº¦å›¾ã€ï¼ˆSobel æ¢¯åº¦å¹…åº¦ï¼Œå½’ä¸€åŒ–åˆ° 0-255
+    /// å•é€šé“ï¼‰ä»£æ›¿ç°åº¦å›¾ï¼Œå¯¹å…‰ç…§å˜åŒ–ã€å‰æ™¯/èƒŒæ™¯ç°åº¦æ¥è¿‘ã€çº¯å½¢çŠ¶è½®å»“ï¼ˆä¸çº¹ç†æ— å…³ï¼‰
+    /// çš„å›¾æ¡ˆæ›´é²æ£’ã€‚ç¼ºé™·æ£€æµ‹ä»åŸºäºç°åº¦å·®å¼‚ï¼Œä¸å—å½±å“ã€‚
+    /// setter ä¼šæŒ‰éœ€ç”Ÿæˆ/é‡Šæ”¾è½®å»“å›¾ï¼Œé¿å…é‡å¤è®¡ç®—ã€‚
     /// </summary>
     private bool _useContour;
     public bool UseContour
@@ -58,8 +67,8 @@ public class RotatedTemplateMatcher : IDisposable
     }
 
     /// <summary>
-    /// ÂÖÀªÆ¥Åä²ÎÊı£ºCanny µÍãĞÖµ£¨1-254£©¡£ÖµÔ½´ó±£ÁôµÄ±ßÔ½ÉÙ£¨Ô½ÑÏ¸ñ£©¡£
-    /// Ó°ÏìÏÔÊ¾µÄÂÌÉ«ÂÖÀª£¬ÒÔ¼°£¨¿ªÆôÂÖÀªÆ¥ÅäÊ±£©±ßÔµÑÚÂëµÄÉú³É¡£Ä¬ÈÏ 30¡£
+    /// è½®å»“åŒ¹é…å‚æ•°ï¼šCanny ä½é˜ˆå€¼ï¼ˆ1-254ï¼‰ã€‚å€¼è¶Šå¤§ä¿ç•™çš„è¾¹è¶Šå°‘ï¼ˆè¶Šä¸¥æ ¼ï¼‰ã€‚
+    /// å½±å“æ˜¾ç¤ºçš„ç»¿è‰²è½®å»“ï¼Œä»¥åŠï¼ˆå¼€å¯è½®å»“åŒ¹é…æ—¶ï¼‰è¾¹ç¼˜æ©ç çš„ç”Ÿæˆã€‚é»˜è®¤ 30ã€‚
     /// </summary>
     private int _contourThreshold = 30;
     public int ContourThreshold
@@ -74,8 +83,8 @@ public class RotatedTemplateMatcher : IDisposable
     }
 
     /// <summary>
-    /// ÂÖÀªÆ¥Åä²ÎÊı£º¸ßË¹Ô¤Æ½»¬ sigma£¨0 = ²»Ä£ºı£¬ÉÏÏŞ 12£©¡£»áÍ¬Ê±×÷ÓÃÓÚ
-    /// Æ¥ÅäÓÃµÄÌİ¶ÈÍ¼Óë±ßÔµÑÚÂë£¬ÒÖÖÆÔëÉù´øÀ´µÄÎ±±ß¡£Ä¬ÈÏ 1¡£
+    /// è½®å»“åŒ¹é…å‚æ•°ï¼šé«˜æ–¯é¢„å¹³æ»‘ sigmaï¼ˆ0 = ä¸æ¨¡ç³Šï¼Œä¸Šé™ 12ï¼‰ã€‚ä¼šåŒæ—¶ä½œç”¨äº
+    /// åŒ¹é…ç”¨çš„æ¢¯åº¦å›¾ä¸è¾¹ç¼˜æ©ç ï¼ŒæŠ‘åˆ¶å™ªå£°å¸¦æ¥çš„ä¼ªè¾¹ã€‚é»˜è®¤ 1ã€‚
     /// </summary>
     private double _contourBlur = 1.0;
     public double ContourBlur
@@ -90,9 +99,9 @@ public class RotatedTemplateMatcher : IDisposable
     }
 
     /// <summary>
-    /// ¶à³ß¶ÈÆ¥Åä·¶Î§£¨Ä£°å´óĞ¡µÄ±¶Êı£©£º0 = ¹Ø±Õ£¨½öÔ­³ß´çÆ¥Åä£©¡£
-    /// È¡Öµ 0~0.6£¬±íÊ¾ÔÚ [1-ScaleRange, 1+ScaleRange] Çø¼äÄÚ°´Èô¸É³ß¶ÈËÑË÷¡£
-    /// ÀıÈç 0.3 ? Ä£°åÔÚ 0.7¡Á~1.3¡Á ´óĞ¡·¶Î§ÄÚ¶¼ÄÜ±»ÕÒµ½¡£Ä¬ÈÏ 0£¨¹Ø±Õ£©¡£
+    /// å¤šå°ºåº¦åŒ¹é…èŒƒå›´ï¼ˆæ¨¡æ¿å¤§å°çš„å€æ•°ï¼‰ï¼š0 = å…³é—­ï¼ˆä»…åŸå°ºå¯¸åŒ¹é…ï¼‰ã€‚
+    /// å–å€¼ 0~0.6ï¼Œè¡¨ç¤ºåœ¨ [1-ScaleRange, 1+ScaleRange] åŒºé—´å†…æŒ‰è‹¥å¹²å°ºåº¦æœç´¢ã€‚
+    /// ä¾‹å¦‚ 0.3 ? æ¨¡æ¿åœ¨ 0.7Ã—~1.3Ã— å¤§å°èŒƒå›´å†…éƒ½èƒ½è¢«æ‰¾åˆ°ã€‚é»˜è®¤ 0ï¼ˆå…³é—­ï¼‰ã€‚
     /// </summary>
     private double _scaleRange = 0.0;
     public double ScaleRange
@@ -107,16 +116,16 @@ public class RotatedTemplateMatcher : IDisposable
     }
 
     /// <summary>Pure matching time (ms) of the last Match call, excluding template
-    /// cache construction ¡ª reported by the native layer so template creation and
+    /// cache construction â€” reported by the native layer so template creation and
     /// UI drawing are never counted.</summary>
     public double LastMatchMs { get; private set; }
 
     public void LoadSource(string path)
     {
         if (string.IsNullOrWhiteSpace(path))
-            throw new ArgumentException("Í¼Æ¬Â·¾¶Îª¿Õ»ò¿Õ°×¡£", nameof(path));
+            throw new ArgumentException("å›¾ç‰‡è·¯å¾„ä¸ºç©ºæˆ–ç©ºç™½ã€‚", nameof(path));
         if (!File.Exists(path))
-            throw new FileNotFoundException($"ÕÒ²»µ½Í¼Æ¬ÎÄ¼ş£º{path}", path);
+            throw new FileNotFoundException($"æ‰¾ä¸åˆ°å›¾ç‰‡æ–‡ä»¶ï¼š{path}", path);
 
         _dataLock.Wait();
         try
@@ -124,7 +133,7 @@ public class RotatedTemplateMatcher : IDisposable
             DisposeSource();
             _source = Cv2.ImRead(path, ImreadModes.Color);
             if (_source == null || _source.Empty())
-                throw new InvalidOperationException($"ÎŞ·¨¶ÁÈ¡Í¼Æ¬£º{path}¡£ÎÄ¼ş¿ÉÄÜÒÑËğ»µ¡¢±»Õ¼ÓÃ£¬»ò¸ñÊ½²»ÊÜ OpenCV Ö§³Ö¡£");
+                throw new InvalidOperationException($"æ— æ³•è¯»å–å›¾ç‰‡ï¼š{path}ã€‚æ–‡ä»¶å¯èƒ½å·²æŸåã€è¢«å ç”¨ï¼Œæˆ–æ ¼å¼ä¸å— OpenCV æ”¯æŒã€‚");
 
             _sourceGray = new Mat();
             Cv2.CvtColor(_source, _sourceGray, ColorConversionCodes.BGR2GRAY);
@@ -218,15 +227,15 @@ public class RotatedTemplateMatcher : IDisposable
                 return MatchSingleScale(_sourceGray, _sourceContour, pyramidLevels, angleStart, angleEnd,
                     angleStep, nccThreshold, maxOverlap, topN, denseMode, 1.0);
 
-        // ¶à³ß¶È£ºÔÚ [1-ScaleRange, 1+ScaleRange] ÄÚÈ¡Èô¸É³ß¶È£¬°ÑÔ­Í¼°´±ÈÀıËõĞ¡/·Å´óºó
-        // ÓÃÔ­³ß´çÄ£°åÆ¥Åä£¨Ä¿±êÔÚ¸Ã³ß¶ÈÏÂÇ¡ºÃÓëÄ£°åµÈ´ó£©£¬ÔÙ°Ñ½á¹ûÓ³Éä»ØÔ­Í¼×ø±ê¡£
-        int steps = Math.Max(3, (int)Math.Round(_scaleRange / 0.1) + 1); // 0.1 Ò»²½£¬ÖÁÉÙ 3 ²½
+        // å¤šå°ºåº¦ï¼šåœ¨ [1-ScaleRange, 1+ScaleRange] å†…å–è‹¥å¹²å°ºåº¦ï¼ŒæŠŠåŸå›¾æŒ‰æ¯”ä¾‹ç¼©å°/æ”¾å¤§å
+        // ç”¨åŸå°ºå¯¸æ¨¡æ¿åŒ¹é…ï¼ˆç›®æ ‡åœ¨è¯¥å°ºåº¦ä¸‹æ°å¥½ä¸æ¨¡æ¿ç­‰å¤§ï¼‰ï¼Œå†æŠŠç»“æœæ˜ å°„å›åŸå›¾åæ ‡ã€‚
+        int steps = Math.Max(3, (int)Math.Round(_scaleRange / 0.1) + 1); // 0.1 ä¸€æ­¥ï¼Œè‡³å°‘ 3 æ­¥
         var all = new List<MatchResult>();
         double totalMs = 0;
         for (int k = 0; k < steps; k++)
         {
             double sf = steps == 1 ? 1.0 : (1.0 - _scaleRange + 2.0 * _scaleRange * k / (steps - 1));
-            double srcFactor = 1.0 / sf;   // Ô­Í¼Ëõ·Å±¶Êı£ºÄ¿±ê´ó(sf>1)?Ô­Í¼ËõĞ¡
+            double srcFactor = 1.0 / sf;   // åŸå›¾ç¼©æ”¾å€æ•°ï¼šç›®æ ‡å¤§(sf>1)?åŸå›¾ç¼©å°
             using var srcScaled = new Mat();
             Cv2.Resize(_sourceGray, srcScaled, new OpenCvSharp.Size(0, 0), srcFactor, srcFactor, InterpolationFlags.Linear);
             Mat? contourScaled = null;
@@ -237,13 +246,13 @@ public class RotatedTemplateMatcher : IDisposable
             }
             var res = MatchSingleScale(srcScaled, contourScaled, pyramidLevels, angleStart, angleEnd,
                 angleStep, nccThreshold, maxOverlap, topN, denseMode, sf);
-            totalMs += LastMatchMs;   // Ã¿´Îµ¥³ß¶Èµ÷ÓÃ¶¼»áË¢ĞÂ LastMatchMs
+            totalMs += LastMatchMs;   // æ¯æ¬¡å•å°ºåº¦è°ƒç”¨éƒ½ä¼šåˆ·æ–° LastMatchMs
             if (contourScaled != null) contourScaled.Dispose();
             all.AddRange(res);
         }
 
         LastMatchMs = totalMs;
-        // ¿ç³ß¶ÈÈ¥ÖØ£ºÍ¬Ò»Ä¿±êÔÚÏàÁÚ³ß¶È»á±»ÖØ¸´¼ì³ö£¬°´ÖĞĞÄÁÚ½ü+½Ç¶È½Ó½üºÏ²¢£¬±£Áô×î¸ß·Ö¡£
+        // è·¨å°ºåº¦å»é‡ï¼šåŒä¸€ç›®æ ‡åœ¨ç›¸é‚»å°ºåº¦ä¼šè¢«é‡å¤æ£€å‡ºï¼ŒæŒ‰ä¸­å¿ƒé‚»è¿‘+è§’åº¦æ¥è¿‘åˆå¹¶ï¼Œä¿ç•™æœ€é«˜åˆ†ã€‚
         var deduped = NmsAcrossScales(all, maxOverlap, angleStep);
         if (deduped.Count > topN) deduped = deduped.GetRange(0, topN);
         for (int i = 0; i < deduped.Count; i++) deduped[i].Index = i + 1;
@@ -255,8 +264,8 @@ public class RotatedTemplateMatcher : IDisposable
         }
     }
 
-    // µ¥³ß¶ÈÆ¥Åä£ºÔÚ¸ø¶¨£¨ÒÑËõ·ÅµÄ£©Ô­Í¼ÉÏÓÃÔ­³ß´çÄ£°åÅÜ native NCC¡£mapFactor ÓÃÓÚ°Ñ
-    // ¼ì²â½á¹û´ÓËõ·Å×ø±êÓ³Éä»ØÔ­Í¼×ø±ê£¨ÖĞĞÄ/³ß´ç ¡Á mapFactor£¬½Ç¶È²»±ä£©£¬²¢¼ÇÂ¼ Scale=mapFactor¡£
+    // å•å°ºåº¦åŒ¹é…ï¼šåœ¨ç»™å®šï¼ˆå·²ç¼©æ”¾çš„ï¼‰åŸå›¾ä¸Šç”¨åŸå°ºå¯¸æ¨¡æ¿è·‘ native NCCã€‚mapFactor ç”¨äºæŠŠ
+    // æ£€æµ‹ç»“æœä»ç¼©æ”¾åæ ‡æ˜ å°„å›åŸå›¾åæ ‡ï¼ˆä¸­å¿ƒ/å°ºå¯¸ Ã— mapFactorï¼Œè§’åº¦ä¸å˜ï¼‰ï¼Œå¹¶è®°å½• Scale=mapFactorã€‚
     private List<MatchResult> MatchSingleScale(
         Mat srcGray, Mat? srcContour,
         int pyramidLevels, double angleStart, double angleEnd, double angleStep,
@@ -273,18 +282,18 @@ public class RotatedTemplateMatcher : IDisposable
         catch (DllNotFoundException ex)
         {
             throw new InvalidOperationException(
-                "ÎŞ·¨¼ÓÔØ GrayModelNative.dll¡£ÇëÈ·±£ÒÔÏÂÎÄ¼şÓë³ÌĞò¿ÉÖ´ĞĞÎÄ¼ş(GrayMatch.Wpf.exe)Î»ÓÚÍ¬Ò»Ä¿Â¼£º\n" +
+                "æ— æ³•åŠ è½½ GrayModelNative.dllã€‚è¯·ç¡®ä¿ä»¥ä¸‹æ–‡ä»¶ä¸ç¨‹åºå¯æ‰§è¡Œæ–‡ä»¶(GrayMatch.Wpf.exe)ä½äºåŒä¸€ç›®å½•ï¼š\n" +
                 "  GrayModelNative.dll\n  opencv_world480.dll\n" +
-                "  vcruntime140.dll¡¢vcruntime140_1.dll¡¢msvcp140.dll¡¢concrt140.dll¡¢vcomp140.dll\n" +
-                "£¨ºó¼¸¸öÊÇ VC++ 2022 ÔËĞĞ¿â£»ÈôÄ¿±êµçÄÔÃ»×° Visual Studio »ò VC++ ¿ÉÔÙ·¢ĞĞ°ü¾Í»áÈ±Ê§£¬\n" +
-                " »áµ¼ÖÂ GrayModelNative.dll ¼ÓÔØÊ§°Ü¡£Çë´Ó¿ª·¢»úµÄÊä³öÄ¿Â¼°ÑÕû¸öÎÄ¼ş¼ĞÒ»Æğ¿½±´¡££©\n" +
-                "Ô­Ê¼´íÎó£º" + ex.Message, ex);
+                "  vcruntime140.dllã€vcruntime140_1.dllã€msvcp140.dllã€concrt140.dllã€vcomp140.dll\n" +
+                "ï¼ˆåå‡ ä¸ªæ˜¯ VC++ 2022 è¿è¡Œåº“ï¼›è‹¥ç›®æ ‡ç”µè„‘æ²¡è£… Visual Studio æˆ– VC++ å¯å†å‘è¡ŒåŒ…å°±ä¼šç¼ºå¤±ï¼Œ\n" +
+                " ä¼šå¯¼è‡´ GrayModelNative.dll åŠ è½½å¤±è´¥ã€‚è¯·ä»å¼€å‘æœºçš„è¾“å‡ºç›®å½•æŠŠæ•´ä¸ªæ–‡ä»¶å¤¹ä¸€èµ·æ‹·è´ã€‚ï¼‰\n" +
+                "åŸå§‹é”™è¯¯ï¼š" + ex.Message, ex);
         }
         catch (BadImageFormatException ex)
         {
             throw new InvalidOperationException(
-                "GrayModelNative.dll ¼ÓÔØÊ§°Ü£ººÜ¿ÉÄÜÊÇ 32 Î» / 64 Î»²»Æ¥Åä¡£±¾³ÌĞòĞèÒª 64 Î» Windows£¬" +
-                "ÇÒ GrayModelNative.dll Îª x64 °æ±¾£¬Çë½«³ÌĞòÒÔ x64 ÔËĞĞ¡£\nÔ­Ê¼´íÎó£º" + ex.Message, ex);
+                "GrayModelNative.dll åŠ è½½å¤±è´¥ï¼šå¾ˆå¯èƒ½æ˜¯ 32 ä½ / 64 ä½ä¸åŒ¹é…ã€‚æœ¬ç¨‹åºéœ€è¦ 64 ä½ Windowsï¼Œ" +
+                "ä¸” GrayModelNative.dll ä¸º x64 ç‰ˆæœ¬ï¼Œè¯·å°†ç¨‹åºä»¥ x64 è¿è¡Œã€‚\nåŸå§‹é”™è¯¯ï¼š" + ex.Message, ex);
         }
         if (handle == IntPtr.Zero)
             throw new InvalidOperationException("Failed to create native matcher.");
@@ -336,8 +345,8 @@ public class RotatedTemplateMatcher : IDisposable
         }
     }
 
-    // ¿ç³ß¶ÈÈ¥ÖØ£ºÉ¾³ıÍ¬Ò»Ä¿±êÔÚ²»Í¬³ß¶ÈÏÂµÄÖØ¸´¼ì³ö¡£ÅĞ¶¨ÎªÖØ¸´µÄÌõ¼ş£º
-    // ÖĞĞÄ¾àÀë < 0.4 ¡Á ½ÏĞ¡¿ò¶Ì±ß£¬ÇÒ½Ç¶È²îÔÚ 2¡Á½Ç¶È²½³¤ÄÚ¡£±£Áô·ÖÊı¸ü¸ßÕß¡£
+    // è·¨å°ºåº¦å»é‡ï¼šåˆ é™¤åŒä¸€ç›®æ ‡åœ¨ä¸åŒå°ºåº¦ä¸‹çš„é‡å¤æ£€å‡ºã€‚åˆ¤å®šä¸ºé‡å¤çš„æ¡ä»¶ï¼š
+    // ä¸­å¿ƒè·ç¦» < 0.4 Ã— è¾ƒå°æ¡†çŸ­è¾¹ï¼Œä¸”è§’åº¦å·®åœ¨ 2Ã—è§’åº¦æ­¥é•¿å†…ã€‚ä¿ç•™åˆ†æ•°æ›´é«˜è€…ã€‚
     private static List<MatchResult> NmsAcrossScales(List<MatchResult> all, double maxOverlap, double angleStep)
     {
         var sorted = all.OrderByDescending(r => r.Score).ToList();
@@ -391,8 +400,8 @@ public class RotatedTemplateMatcher : IDisposable
     /// region by -angle so it becomes upright and aligned with the template, compute the
     /// absolute grayscale difference, threshold it to an anomaly mask, cluster connected
     /// components, and heuristically classify each into one of four defect types:
-    ///   ÎÛ×Õ/ÒìÎï (dark blob), »®ºÛ (elongated bright/dark line),
-    ///   È±ÁÏ/ÆÆËğ (large missing/darker region), ÁÁ¶È/¶Ô±È¶ÈÒì³£ (global brightness/contrast shift).
+    ///   æ±¡æ¸/å¼‚ç‰© (dark blob), åˆ’ç—• (elongated bright/dark line),
+    ///   ç¼ºæ–™/ç ´æŸ (large missing/darker region), äº®åº¦/å¯¹æ¯”åº¦å¼‚å¸¸ (global brightness/contrast shift).
     /// Defects are returned in upright template-local coords plus a precomputed image-space
     /// center so the UI can draw the red overlay without re-deriving the rotation transform.
     /// </summary>
@@ -417,7 +426,7 @@ public class RotatedTemplateMatcher : IDisposable
             return outList;
         }
 
-        var srcGray = _sourceGray;      // cached by LoadSource ¡ª no per-call full-image conversion
+        var srcGray = _sourceGray;      // cached by LoadSource â€” no per-call full-image conversion
         var tmpl = _template;
         int tw = tmpl.Width, th = tmpl.Height;
         int minDim = Math.Min(tw, th);
@@ -462,8 +471,8 @@ public class RotatedTemplateMatcher : IDisposable
             double ang = r.Angle;
             var center = new Point2f((float)r.CenterX, (float)r.CenterY);
 
-            // ¶à³ß¶ÈÆ¥ÅäÊ±Ä¿±êÊµ¼Ê´óĞ¡Îª tw*Scale ¡Á th*Scale£¨Scale Ä¬ÈÏ 1£©¡£
-            // ÏÈ°Ñ¸Ã´óĞ¡µÄĞı×ªÇøÓò¿Ù³öÀ´£¬ÔÙËõ·Åµ½Ä£°å³ß´ç tw¡Áth ÔÙÓëÄ£°å±È¶Ô¡£
+            // å¤šå°ºåº¦åŒ¹é…æ—¶ç›®æ ‡å®é™…å¤§å°ä¸º tw*Scale Ã— th*Scaleï¼ˆScale é»˜è®¤ 1ï¼‰ã€‚
+            // å…ˆæŠŠè¯¥å¤§å°çš„æ—‹è½¬åŒºåŸŸæŠ å‡ºæ¥ï¼Œå†ç¼©æ”¾åˆ°æ¨¡æ¿å°ºå¯¸ twÃ—th å†ä¸æ¨¡æ¿æ¯”å¯¹ã€‚
             int sw = Math.Max(4, (int)Math.Round(tw * r.Scale));
             int sh = Math.Max(4, (int)Math.Round(th * r.Scale));
 
@@ -493,7 +502,7 @@ public class RotatedTemplateMatcher : IDisposable
             using var mask = new Mat();
             Cv2.Threshold(diff, mask, diffThreshold, 255, ThresholdTypes.Binary);
 
-            // (a) drop everything sitting on a template grey-level transition ¡ª that is pose
+            // (a) drop everything sitting on a template grey-level transition â€” that is pose
             //     error on the part outline / internal contour junctions, never a defect.
             if (edgeBand != null) Cv2.Subtract(mask, edgeBand, mask);
 
@@ -526,7 +535,7 @@ public class RotatedTemplateMatcher : IDisposable
                 double areaFrac = area / (double)(tw * th);
                 if (areaFrac > maxAreaFrac) continue;
 
-                // tight, rotation-invariant footprint ¡ª an axis-aligned bbox of a diagonal scratch
+                // tight, rotation-invariant footprint â€” an axis-aligned bbox of a diagonal scratch
                 // is enormous, which is exactly why the old overlay looked oversized.
                 var minRect = Cv2.MinAreaRect(c);
                 double mw = minRect.Size.Width, mh = minRect.Size.Height;
@@ -550,11 +559,11 @@ public class RotatedTemplateMatcher : IDisposable
                                  && areaFrac <= 0.25;
 
                 string type;
-                if (elongated) type = "»®ºÛ";
-                else if (dark && big) type = "È±ÁÏ/ÆÆËğ";
-                else if (dark) type = "ÎÛ×Õ/ÒìÎï";
-                else if (bright) type = "ÁÁ¶ÈÒì³£";
-                else type = "ÁÁ¶È/¶Ô±È¶ÈÒì³£";
+                if (elongated) type = "åˆ’ç—•";
+                else if (dark && big) type = "ç¼ºæ–™/ç ´æŸ";
+                else if (dark) type = "æ±¡æ¸/å¼‚ç‰©";
+                else if (bright) type = "äº®åº¦å¼‚å¸¸";
+                else type = "äº®åº¦/å¯¹æ¯”åº¦å¼‚å¸¸";
 
                 var bbox = Cv2.BoundingRect(c);
 
@@ -594,7 +603,7 @@ public class RotatedTemplateMatcher : IDisposable
             }
 
             // No localized defect, but the instance as a whole is off in brightness/contrast.
-            // Draw a small centred badge ¡ª NOT a full-template red block.
+            // Draw a small centred badge â€” NOT a full-template red block.
             if (!foundLocal && meanDiff > globalBrightnessThresh)
             {
                 double badge = Math.Min(40.0, Math.Max(12.0, 0.22 * minDim));
@@ -614,7 +623,7 @@ public class RotatedTemplateMatcher : IDisposable
                     RectAngle = -ang,
                     ImgCx = r.CenterX,
                     ImgCy = r.CenterY,
-                    Type = "ÁÁ¶È/¶Ô±È¶ÈÒì³£",
+                    Type = "äº®åº¦/å¯¹æ¯”åº¦å¼‚å¸¸",
                     Score = meanDiff
                 });
             }
@@ -698,18 +707,18 @@ public class RotatedTemplateMatcher : IDisposable
     #endregion
 
     /// <summary>
-    /// ÓÉ»Ò¶ÈÍ¼Éú³É¡¸ÂÖÀª/±ßÔµ¡¹Í¼£ºSobel Ìİ¶È·ù¶È£¨CV_32F£©È¡Ä£ºó¹éÒ»»¯µ½ 0-255 µÄ
-    /// µ¥Í¨µÀ 8 Î»Í¼¡£¹éÒ»»¯±£Ö¤ÁËÓë»Ò¶ÈÍ¼ÍêÈ«ÏàÍ¬µÄÄÚ´æ²¼¾Ö£¨µ¥Í¨µÀ¡¢ĞĞÁ¬Ğø£©£¬
-    /// Òò´Ë native µÄ NCC Â·¾¶ÎŞĞèÈÎºÎ¸Ä¶¯¼´¿ÉÖ±½ÓÊ¹ÓÃ£¬ÇÒ¶Ô¹âÕÕ±ä»¯¸üÂ³°ô¡£
+    /// ç”±ç°åº¦å›¾ç”Ÿæˆã€Œè½®å»“/è¾¹ç¼˜ã€å›¾ï¼šSobel æ¢¯åº¦å¹…åº¦ï¼ˆCV_32Fï¼‰å–æ¨¡åå½’ä¸€åŒ–åˆ° 0-255 çš„
+    /// å•é€šé“ 8 ä½å›¾ã€‚å½’ä¸€åŒ–ä¿è¯äº†ä¸ç°åº¦å›¾å®Œå…¨ç›¸åŒçš„å†…å­˜å¸ƒå±€ï¼ˆå•é€šé“ã€è¡Œè¿ç»­ï¼‰ï¼Œ
+    /// å› æ­¤ native çš„ NCC è·¯å¾„æ— éœ€ä»»ä½•æ”¹åŠ¨å³å¯ç›´æ¥ä½¿ç”¨ï¼Œä¸”å¯¹å…‰ç…§å˜åŒ–æ›´é²æ£’ã€‚
     /// </summary>
     public byte[]? TemplateContourMask => _templateContourMask;
     public int TemplateContourW => _templateContourMaskW;
     public int TemplateContourH => _templateContourMaskH;
 
     /// <summary>
-    /// ÓÉ»Ò¶ÈÄ£°åÉú³É¡¸±ßÔµ¶şÖµÑÚÂë¡¹£ºCanny ±ßÔµ¼ì²â£¬Êä³ö 1/0 µÄÑÚÂë£¨1 = ±ßÔµÏñËØ£©¡£
-    /// ¹© UI ÔÚÂÖÀªÆ¥ÅäÄ£Ê½ÏÂ°ÑÄ£°åĞÎ×´ÓÃÂÌÉ«ÏßÌõ»­µ½Ã¿¸öÆ¥ÅäÎ»ÖÃÉÏ¡£
-    /// Ä£°å³ß´çºÜĞ¡£¨½öÄ£°å´óĞ¡£©£¬¿ªÏú¿ÉºöÂÔ¡£
+    /// ç”±ç°åº¦æ¨¡æ¿ç”Ÿæˆã€Œè¾¹ç¼˜äºŒå€¼æ©ç ã€ï¼šCanny è¾¹ç¼˜æ£€æµ‹ï¼Œè¾“å‡º 1/0 çš„æ©ç ï¼ˆ1 = è¾¹ç¼˜åƒç´ ï¼‰ã€‚
+    /// ä¾› UI åœ¨è½®å»“åŒ¹é…æ¨¡å¼ä¸‹æŠŠæ¨¡æ¿å½¢çŠ¶ç”¨ç»¿è‰²çº¿æ¡ç”»åˆ°æ¯ä¸ªåŒ¹é…ä½ç½®ä¸Šã€‚
+    /// æ¨¡æ¿å°ºå¯¸å¾ˆå°ï¼ˆä»…æ¨¡æ¿å¤§å°ï¼‰ï¼Œå¼€é”€å¯å¿½ç•¥ã€‚
     /// </summary>
     private void ComputeTemplateContourMask()
     {
@@ -720,7 +729,7 @@ public class RotatedTemplateMatcher : IDisposable
         int w = _template.Width, h = _template.Height;
         var mask = new byte[w * h];
 
-        // ¿ÉÑ¡Ô¤Ä£ºı£¨ÂÖÀªÆ¥Åä²ÎÊıÖ®Ò»£©£ºÒÖÖÆÔëÉùÎ±±ß
+        // å¯é€‰é¢„æ¨¡ç³Šï¼ˆè½®å»“åŒ¹é…å‚æ•°ä¹‹ä¸€ï¼‰ï¼šæŠ‘åˆ¶å™ªå£°ä¼ªè¾¹
         Mat? blurred = null;
         Mat work = _template;
         if (_contourBlur > 0)
@@ -730,7 +739,7 @@ public class RotatedTemplateMatcher : IDisposable
             work = blurred;
         }
 
-        // µÚÒ»Ñ¡Ôñ£ºCanny ±ßÔµ£¨¸üÏ¸µÄÏßÌõ£©¡£µÍãĞÖµÓÉÂÖÀª²ÎÊı¿ØÖÆ£¨Ô½´ó±ßÔ½ÉÙ£©¡£
+        // ç¬¬ä¸€é€‰æ‹©ï¼šCanny è¾¹ç¼˜ï¼ˆæ›´ç»†çš„çº¿æ¡ï¼‰ã€‚ä½é˜ˆå€¼ç”±è½®å»“å‚æ•°æ§åˆ¶ï¼ˆè¶Šå¤§è¾¹è¶Šå°‘ï¼‰ã€‚
         using (var edges = new Mat())
         {
             Cv2.Canny(work, edges, _contourThreshold, Math.Max(_contourThreshold * 2.0, _contourThreshold + 5));
@@ -739,8 +748,8 @@ public class RotatedTemplateMatcher : IDisposable
                 for (int x = 0; x < w; x++)
                     if (edges.At<byte>(y, x) != 0) { mask[y * w + x] = 1; count++; }
 
-            // ±ßÔµÌ«ÉÙ£¨ÈçµÍ¶Ô±ÈÄ£°å / ãĞÖµ¹ı¸ß£©Ê±»ØÍË£ºÓÃ Sobel Ìİ¶È·ù¶ÈµÄãĞÖµ×÷Îª±ßÔµ£¬
-            // ±£Ö¤ÂÖÀªÏßÖÁÉÙÓĞ¿É¼ûµÄÄ£°åĞÎ×´¡£
+            // è¾¹ç¼˜å¤ªå°‘ï¼ˆå¦‚ä½å¯¹æ¯”æ¨¡æ¿ / é˜ˆå€¼è¿‡é«˜ï¼‰æ—¶å›é€€ï¼šç”¨ Sobel æ¢¯åº¦å¹…åº¦çš„é˜ˆå€¼ä½œä¸ºè¾¹ç¼˜ï¼Œ
+            // ä¿è¯è½®å»“çº¿è‡³å°‘æœ‰å¯è§çš„æ¨¡æ¿å½¢çŠ¶ã€‚
             if (count < 5)
             {
                 using var gx = new Mat();
@@ -771,8 +780,8 @@ public class RotatedTemplateMatcher : IDisposable
     }
 
     /// <summary>
-    /// ÔÚ¡¸Æ½»¬ / ãĞÖµ¡¹²ÎÊı±ä»¯ºóµ÷ÓÃ£ºË¢ĞÂÄ£°å±ßÔµÑÚÂë£¨ÂÌÉ«ÂÖÀªÏÔÊ¾ÓÃ£©£¬
-    /// ÒÔ¼°£¨¿ªÆôÂÖÀªÆ¥ÅäÊ±£©ÖØĞÂÉú³ÉÎ¹¸ø native µÄÌİ¶ÈÍ¼¡£Ä£°å/Ô­Í¼³ß´çºÜĞ¡£¬¿ªÏú¿ÉºöÂÔ¡£
+    /// åœ¨ã€Œå¹³æ»‘ / é˜ˆå€¼ã€å‚æ•°å˜åŒ–åè°ƒç”¨ï¼šåˆ·æ–°æ¨¡æ¿è¾¹ç¼˜æ©ç ï¼ˆç»¿è‰²è½®å»“æ˜¾ç¤ºç”¨ï¼‰ï¼Œ
+    /// ä»¥åŠï¼ˆå¼€å¯è½®å»“åŒ¹é…æ—¶ï¼‰é‡æ–°ç”Ÿæˆå–‚ç»™ native çš„æ¢¯åº¦å›¾ã€‚æ¨¡æ¿/åŸå›¾å°ºå¯¸å¾ˆå°ï¼Œå¼€é”€å¯å¿½ç•¥ã€‚
     /// </summary>
     public void RecomputeContours()
     {
@@ -798,7 +807,7 @@ public class RotatedTemplateMatcher : IDisposable
 
     private Mat MakeContour(Mat gray)
     {
-        // ¿ÉÑ¡Ô¤Ä£ºı£¨ÂÖÀªÆ¥Åä²ÎÊıÖ®Ò»£©
+        // å¯é€‰é¢„æ¨¡ç³Šï¼ˆè½®å»“åŒ¹é…å‚æ•°ä¹‹ä¸€ï¼‰
         Mat? blurred = null;
         Mat work = gray;
         if (_contourBlur > 0)
@@ -836,8 +845,8 @@ public class RotatedTemplateMatcher : IDisposable
         _templateContour?.Dispose();
         _template = null;
         _templateContour = null;
-        // ²» Dispose _dataLock£ºÈç¹ûÆ¥Åä/È±Ïİ¼ì²âÏß³ÌÕı³ÖÓĞËü£¬Dispose »áÅ×Òì³£¡£
-        // ³ÌĞòÍË³öÊ±ÓÉÖÕ½áÆ÷»ØÊÕ¼´¿É¡£
+        // ä¸ Dispose _dataLockï¼šå¦‚æœåŒ¹é…/ç¼ºé™·æ£€æµ‹çº¿ç¨‹æ­£æŒæœ‰å®ƒï¼ŒDispose ä¼šæŠ›å¼‚å¸¸ã€‚
+        // ç¨‹åºé€€å‡ºæ—¶ç”±ç»ˆç»“å™¨å›æ”¶å³å¯ã€‚
         GC.SuppressFinalize(this);
     }
 }
@@ -859,12 +868,12 @@ public class DefectOptions
 
     /// <summary>
     /// Half-width (px) of the "don't care" band grown around every template grey-level
-    /// transition ¡ª an extra safety net for parts whose outline still leaks through.
+    /// transition â€” an extra safety net for parts whose outline still leaks through.
     ///
-    /// Off by default: measured on a contour-heavy part across 0.2¡ã¨C3.0¡ã of pose error, the
+    /// Off by default: measured on a contour-heavy part across 0.2Â°â€“3.0Â° of pose error, the
     /// erode/dilate pass alone already removed 100% of the outline false positives, while a
     /// 3-px band additionally swallowed a genuine 20-px scratch (it shrank to 8 px, and to
-    /// nothing without the dilate). Turn it on (2¨C4) only if outline artefacts survive, and
+    /// nothing without the dilate). Turn it on (2â€“4) only if outline artefacts survive, and
     /// expect defects that touch a contour to be attenuated.
     /// </summary>
     public int EdgeTolerance { get; set; } = 0;

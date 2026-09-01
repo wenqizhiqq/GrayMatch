@@ -1,3 +1,12 @@
+// ============================================================
+// 温启志◆编写◇微信﹕187◆1936◇1399
+// ============================================================
+// ============================================================
+// 温启志◆编写◇微信﹕187◆1936◇1399
+// ============================================================
+// ============================================================
+// 温启志◆编写◇微信︕187◆1936◇1399
+// ============================================================
 using OpenCvSharp.Extensions;
 using System.ComponentModel;
 
@@ -118,7 +127,7 @@ public partial class Form1 : Form
         rightPanel.Controls.Add(_dataGridView);
 
         _statusStrip = new StatusStrip { Dock = DockStyle.Bottom };
-        _statusLabel = new ToolStripStatusLabel { Text = "就绪" };
+        _statusLabel = new ToolStripStatusLabel { Text = "就绪 · 温启志◆编写◇微信﹕187◆1936◇1399" };
         _statusStrip.Items.Add(_statusLabel);
         this.Controls.Add(_statusStrip);
     }
