@@ -1,228 +1,83 @@
 // ============================================================
 // 温启志◆编写◇微信﹕187◆1936◇1399
 // ============================================================
-// ============================================================
-// 温启志◆编写◇微信﹕187◆1936◇1399
-// ============================================================
-// ============================================================
-// 温启志◆编写◇微信﹕187◆1936◇1399
-// ============================================================
 using System;
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Threading;
+using System.Windows.Media.Imaging;
 
 namespace GrayMatch.Wpf;
 
 /// <summary>
-/// Image-view zoom &amp; pan, implemented with a <see cref="ScrollViewer"/> + a
-/// <see cref="System.Windows.Media.ScaleTransform"/> in <c>ImageGrid.LayoutTransform</c>.
+/// 图像显示：固定“整幅自适应窗口”，不做缩放/平移。
 ///
-/// Why ScrollViewer? The previous <c>Viewbox</c>/<c>Border</c> + render-transform (scale+translate)
-/// approach kept clipping the bottom of the image because manual centering math never lined up with
-/// WPF's actual layout. A <c>ScrollViewer</c> structurally guarantees the whole content is reachable:
-/// when the image is larger than the viewport you get scrollable area, and when it is smaller the
-/// <c>HorizontalContentAlignment/Center</c> settings auto-center it. We only ever touch the scale;
-/// scrolling/centering is delegated to the ScrollViewer.
+/// 之前是 <c>ScrollViewer</c> + 渲染变换（滚轮缩放、中键拖动），现在按需求去掉：
+/// 显示交给 XAML 里的 <c>Viewbox</c>（Stretch=Uniform），
+/// 无论打开新图还是改窗口大小，图像始终完整铺满并居中，不需要任何交互。
 ///
-/// ROI selection (left-drag, handled on <c>ImageGrid</c> in the main code-behind) is untouched:
-/// <c>Mouse.GetPosition(ImageGrid)</c> returns image-space (unscaled) coordinates regardless of the
-/// layout transform, so the ROI rectangle and the result/defect overlays all stay glued to the pixels.
-///
-/// Controls:
-///   - Mouse wheel        → zoom in/out about the cursor
-///   - Middle button drag → pan
-///   - Double click       → reset / fit-to-view
-///   - New image / resize → auto fit (until the user has manually transformed)
+/// 这里只做一件事：把 <c>ImageGrid</c> 的逻辑尺寸设成图像原始尺寸，
+/// 这样 overlay（ROI/结果/缺陷）与像素坐标一一对应；未缩放的 Grid 比视口大，
+/// 鼠标命中区域覆盖整个视口，任意位置都能框选 ROI。
+/// 坐标说明：Viewbox 施加的是布局缩放，
+/// <c>Mouse.GetPosition(ImageGrid)</c> 返回的仍是未缩放的图像坐标，与显示比例无关。
 /// </summary>
 public partial class MainWindow
 {
-    private bool _isPanning;
-    private Point _panStart;          // cursor position at pan start (in ScrollViewer space)
-    private Point _scrollStart;       // scroll offsets at pan start
-    private bool _manualTransform;    // user has zoomed/panned → stop auto-fitting
-    private bool _initialFitPending = true;
-    private bool _isFitting;          // re-entrancy guard for FitToView
-    private int _fitCount;
-
     private void ImageViewer_Loaded(object sender, RoutedEventArgs e)
     {
-        // LayoutUpdated is the reliable "the image has been laid out" signal.
-        // It fires after every arrange pass; we use a one-shot flag so we only fit once per image.
-        ImageGrid.LayoutUpdated += ImageGrid_LayoutUpdated;
-
-        // Also listen to the Source DP for cases where the source is swapped without a full layout diff.
+        // 换图时把 Grid 尺寸对齐到新图。
         DependencyPropertyDescriptor.FromProperty(Image.SourceProperty, typeof(Image))
             .AddValueChanged(SourceImage, OnSourceImageChanged);
 
-        // The window is its own DataContext (INotifyPropertyChanged); SourceBitmap is a direct,
-        // reliable signal that a new image was opened.
-        this.PropertyChanged += OnWindowPropertyChanged;
+        SyncImageSize();
     }
 
-    private void OnWindowPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
-    {
-        if (e?.PropertyName == "SourceBitmap")
-        {
-            _manualTransform = false;
-            _initialFitPending = true;
-            Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(FitToView));
-        }
-    }
-
-    private void ImageGrid_LayoutUpdated(object? sender, EventArgs e)
-    {
-        if (_initialFitPending && SourceImage?.Source != null &&
-            ImageGrid.ActualWidth > 1 && ImageGrid.ActualHeight > 1 &&
-            ImageViewport.ViewportWidth > 0 && ImageViewport.ViewportHeight > 0)
-        {
-            _manualTransform = false;
-            FitToView();
-            _initialFitPending = false;
-        }
-    }
-
-    private void OnSourceImageChanged(object? sender, EventArgs e)
-    {
-        // A freshly loaded image should always fit, regardless of any prior zoom/pan.
-        _manualTransform = false;
-        _initialFitPending = true;
-
-        // Force the grid to exactly match the source image's size. This avoids any mystery where the
-        // grid sizes to the viewport or to overlay children instead of the actual bitmap.
-        if (SourceImage?.Source != null)
-        {
-            ImageGrid.Width = SourceImage.Source.Width;
-            ImageGrid.Height = SourceImage.Source.Height;
-        }
-
-        // Multiple deferred attempts cover every layout timing edge case.
-        Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(FitToView));
-        Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(FitToView));
-    }
-
-    private void ImageGrid_SizeChanged(object sender, SizeChangedEventArgs e)
-    {
-        // The grid's layout size changes both when a NEW image loads AND when our scale changes
-        // (LayoutTransform affects layout). Guard with _isFitting so the scale change does not
-        // re-trigger a fit; guard with _manualTransform so a user's zoom/pan survives an ordinary
-        // window resize.
-        if (_isFitting || _manualTransform) return;
-        FitToView();
-    }
-
-    private void ImageArea_MouseWheel(object sender, MouseWheelEventArgs e)
-    {
-        var sv = (ScrollViewer)sender;
-
-        // Position of the cursor in the IMAGE's own (unscaled) coordinate space. GetPosition on the
-        // child element returns local coordinates that already account for the layout transform, so
-        // this is independent of the current zoom and correct even when the content is centered.
-        Point pContent = e.GetPosition(ImageGrid);
-        // Position of the cursor within the ScrollViewer viewport (screen-relative).
-        Point pViewport = e.GetPosition(sv);
-
-        double oldScale = ImageScale.ScaleX;
-        double factor = e.Delta > 0 ? 1.12 : 1.0 / 1.12;
-        double newScale = Math.Max(0.05, Math.Min(40, oldScale * factor));
-        ImageScale.ScaleX = newScale;
-        ImageScale.ScaleY = newScale;
-
-        // Force the layout so the new scrollable extent is known, then scroll so the same content
-        // point stays under the cursor:  scrollOffset + pViewport == pContent * newScale.
-        sv.UpdateLayout();
-        sv.ScrollToHorizontalOffset(pContent.X * newScale - pViewport.X);
-        sv.ScrollToVerticalOffset(pContent.Y * newScale - pViewport.Y);
-
-        _manualTransform = true;
-        e.Handled = true;
-    }
-
-    private void ImageArea_MouseDown(object sender, MouseButtonEventArgs e)
-    {
-        var sv = (ScrollViewer)sender;
-
-        // Double-click (left) resets the view to fit. ScrollViewer/Grid have no MouseDoubleClick
-        // event, so we read ClickCount off the normal MouseDown.
-        if (e.ChangedButton == MouseButton.Left && e.ClickCount == 2)
-        {
-            _manualTransform = false;
-            FitToView();
-            e.Handled = true;
-            return;
-        }
-
-        if (e.ChangedButton == MouseButton.Middle && e.ButtonState == MouseButtonState.Pressed)
-        {
-            _isPanning = true;
-            _panStart = e.GetPosition(sv);
-            _scrollStart = new Point(sv.HorizontalOffset, sv.VerticalOffset);
-            sv.CaptureMouse();
-            _manualTransform = true;
-            e.Handled = true;
-        }
-    }
-
-    private void ImageArea_MouseMove(object sender, MouseEventArgs e)
-    {
-        if (!_isPanning) return;
-        var sv = (ScrollViewer)sender;
-        Point p = e.GetPosition(sv);
-        // Dragging right moves content right → scroll offset decreases.
-        sv.ScrollToHorizontalOffset(_scrollStart.X - (p.X - _panStart.X));
-        sv.ScrollToVerticalOffset(_scrollStart.Y - (p.Y - _panStart.Y));
-        e.Handled = true;
-    }
-
-    private void ImageArea_MouseUp(object sender, MouseButtonEventArgs e)
-    {
-        if (_isPanning && e.ChangedButton == MouseButton.Middle)
-        {
-            _isPanning = false;
-            ((ScrollViewer)sender).ReleaseMouseCapture();
-            e.Handled = true;
-        }
-    }
+    private void OnSourceImageChanged(object? sender, EventArgs e) => SyncImageSize();
 
     /// <summary>
-    /// Scale the image so it fits the viewport. Because the <c>ImageGrid</c> lives inside a
-    /// <c>ScrollViewer</c> with centered content alignment, the ScrollViewer itself takes care of
-    /// centering (when the image is smaller than the viewport) or making it scrollable (when larger).
-    /// We only set the scale and reset the scroll position to the origin.
+    /// 让 ImageGrid 的逻辑尺寸等于图像显示尺寸（设备无关单位：像素 × 96/DPI）。
+    /// 自适应由外层 Viewbox 完成，这里只负责坐标系对齐。
     /// </summary>
-    private void FitToView()
+    private void SyncImageSize()
     {
-        if (_isFitting) return;
-        _isFitting = true;
-        try
+        var src = SourceImage?.Source;
+        if (src == null) return;
+
+        double w = ContentWidth(src);
+        double h = ContentHeight(src);
+        if (w <= 0.5 || h <= 0.5) return;
+
+        // Grid 尺寸初始是 NaN（NaN 参与比较恒为 false），必须单独判 NaN。
+        if (double.IsNaN(ImageGrid.Width) || Math.Abs(ImageGrid.Width - w) > 0.01)
+            ImageGrid.Width = w;
+        if (double.IsNaN(ImageGrid.Height) || Math.Abs(ImageGrid.Height - h) > 0.01)
+            ImageGrid.Height = h;
+
+        // 让 <Image> 自身也按同一尺寸渲染：位图 DPI 元数据与容器尺寸不一致时两者会错位。
+        if (SourceImage != null)
         {
-            if (SourceImage == null || SourceImage.Source == null) return;
-            double srcW = SourceImage.Source.Width;
-            double srcH = SourceImage.Source.Height;
-            if (srcW <= 0 || srcH <= 0) return;
-
-            double vpW = ImageViewport.ViewportWidth;
-            double vpH = ImageViewport.ViewportHeight;
-            if (vpW <= 0 || vpH <= 0) return;
-
-            double scale = Math.Min(vpW / srcW, vpH / srcH);
-            ImageScale.ScaleX = scale;
-            ImageScale.ScaleY = scale;
-
-            // Reset scroll to the origin; when the image fits it is auto-centered, and when it is
-            // larger this shows the top-left corner. Do it after layout so clamping is correct.
-            ImageViewport.ScrollToHorizontalOffset(0);
-            ImageViewport.ScrollToVerticalOffset(0);
-
-            _fitCount++;
-            StatusText = $"适配#{_fitCount} 缩放={scale:F3} 源={srcW:F0}x{srcH:F0} 视口={vpW:F0}x{vpH:F0}";
+            if (double.IsNaN(SourceImage.Width) || Math.Abs(SourceImage.Width - w) > 0.01)
+                SourceImage.Width = w;
+            if (double.IsNaN(SourceImage.Height) || Math.Abs(SourceImage.Height - h) > 0.01)
+                SourceImage.Height = h;
         }
-        finally
-        {
-            _isFitting = false;
-        }
+    }
+
+    /// <summary>图像显示宽度（设备无关单位 = 像素 × 96 / DPI）。</summary>
+    private static double ContentWidth(ImageSource src)
+    {
+        var bmp = src as BitmapSource;
+        double dpi = (bmp != null && bmp.DpiX > 1) ? bmp.DpiX : 96.0;
+        return src.Width * 96.0 / dpi;
+    }
+
+    /// <summary>图像显示高度（设备无关单位 = 像素 × 96 / DPI）。</summary>
+    private static double ContentHeight(ImageSource src)
+    {
+        var bmp = src as BitmapSource;
+        double dpi = (bmp != null && bmp.DpiY > 1) ? bmp.DpiY : 96.0;
+        return src.Height * 96.0 / dpi;
     }
 }

@@ -40,6 +40,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private readonly DispatcherTimer _autoMatchTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(1000) };
     private bool _autoMatchDirty;
     private bool _suppressAutoMatch;
+    private bool _loadingSettings;   // 正在应用已保存参数：期间禁止回写，避免把默认值冲掉
     private CancellationTokenSource? _selCts;
     private readonly SemaphoreSlim _loadSem = new(1, 1);
 
@@ -62,6 +63,14 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         WireEvents();
         LoadComputerConfig();
         UpdateInfluenceFactors();
+
+        // Defaults: dense mode ON, NCC similarity threshold 0.80.
+        // Set explicitly here (not only in XAML) so the defaults cannot be lost.
+        // ApplyPersistedSettings() later overrides them with the user-saved values.
+        SldThreshold.Value = 0.50;
+        TbThresholdVal.Text = "0.50";
+        ChkDense.IsChecked = true;
+
         Title = "旋转不变 NCC 匹配器 — WPF 演示 · " + GrayMatch.CodeMeta.Signature;
         StatusText = "已经准备好了，可以开始 · 温启志◆编写◇微信﹕187◆1936◇1399";
         _ = LoadPersistedStateAsync();
@@ -201,8 +210,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         SldAngleEnd.Value = 180;
         SldAngleStep.Value = 1;
         SldThreshold.Value = 0.50;
-        SldOverlap.Value = 0.25;
-        SldTopN.Value = 10;
+        SldOverlap.Value = 0.10;
+        SldTopN.Value = 200;
         SldPyramid.Value = 4;
         _suppressAutoMatch = false;
         ScheduleAutoMatch();
@@ -226,7 +235,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         _lastFolder = folder;
         SaveLastFolder();
 
-        var exts = new HashSet<string> { ".bmp", ".png", ".jpg", ".jpeg", ".tif", ".tiff", ".gif" };
+        var exts = new HashSet<string> { ".bmp", ".png", ".jpg", ".jpeg", ".tif", ".tiff", ".gif", ".webp" };
         _imageFiles = Directory.GetFiles(folder, "*.*")
             .Where(f => exts.Contains(Path.GetExtension(f).ToLowerInvariant()))
             .OrderBy(f => f, StringComparer.OrdinalIgnoreCase)
@@ -281,7 +290,21 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             await _loadSem.WaitAsync(token);
             entered = true;
             token.ThrowIfCancellationRequested();
-            await Task.Run(() => _matcher.LoadSource(path), token);
+            await Task.Run(() =>
+            {
+                // 先让 OpenCV 读；读不出来（GIF、以及 OpenCV 未编译 WebP 的场景）
+                // 再用 WPF 解码器兜底，保证 webp/gif 也能正常载入识别。
+                try
+                {
+                    _matcher.LoadSource(path);
+                }
+                catch (Exception)
+                {
+                    using var decoded = TryDecodeWithWpf(path);
+                    if (decoded == null) throw;
+                    _matcher.LoadSource(decoded, path);
+                }
+            }, token);
             var mat = _matcher.Source;
             _sourceColor = mat.Clone();
             RefreshDisplayBitmap();
@@ -760,8 +783,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         public double AngleEnd { get; set; } = 180;
         public double AngleStep { get; set; } = 1;
         public double Threshold { get; set; } = 0.50;
-        public double Overlap { get; set; } = 0.25;
-        public double TopN { get; set; } = 10;
+        public double Overlap { get; set; } = 0.10;
+        public double TopN { get; set; } = 200;
         public int PyramidLevel { get; set; } = 4;
         public bool Contour { get; set; }
         public double ContourBlur { get; set; } = 1;
@@ -771,8 +794,57 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         public double ScaleRange { get; set; }
     }
 
+    /// <summary>
+    /// OpenCV 解码失败时的兜底读取：改用 WPF 自带解码器（WIC）。
+    /// OpenCV 对 WebP 的支持取决于编译选项、对 GIF 往往直接返回空图；
+    /// WIC 能解 WebP/GIF/BMP/PNG/JPEG/TIFF，这里统一转成 OpenCV 习惯的 BGR 三通道。
+    /// </summary>
+    private static OpenCvSharp.Mat? TryDecodeWithWpf(string path)
+    {
+        try
+        {
+            using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            var decoder = System.Windows.Media.Imaging.BitmapDecoder.Create(
+                stream,
+                System.Windows.Media.Imaging.BitmapCreateOptions.PreservePixelFormat,
+                System.Windows.Media.Imaging.BitmapCacheOption.OnLoad);
+            if (decoder.Frames.Count == 0) return null;
+
+            var frame = decoder.Frames[0];
+            var bgra = new System.Windows.Media.Imaging.FormatConvertedBitmap(
+                frame, System.Windows.Media.PixelFormats.Bgra32, null, 0);
+            int w = bgra.PixelWidth, h = bgra.PixelHeight;
+            if (w <= 0 || h <= 0) return null;
+
+            int stride = w * 4;
+            var buf = new byte[stride * h];
+            bgra.CopyPixels(buf, stride, 0);
+
+            var mat = new OpenCvSharp.Mat(h, w, OpenCvSharp.MatType.CV_8UC3);
+            var row = new byte[w * 3];
+            IntPtr dst = mat.Data;
+            int dstStride = (int)mat.Step();
+            for (int y = 0; y < h; y++)
+            {
+                int src = y * stride;
+                for (int x = 0; x < w; x++)
+                {
+                    row[x * 3] = buf[src + x * 4];         // B
+                    row[x * 3 + 1] = buf[src + x * 4 + 1]; // G
+                    row[x * 3 + 2] = buf[src + x * 4 + 2]; // R
+                }
+                Marshal.Copy(row, 0, dst + y * dstStride, row.Length);
+            }
+            return mat;
+        }
+        catch { return null; }
+    }
+
     private void SaveSettings()
     {
+        // 应用已保存参数的过程中控件会触发 ValueChanged/Checked，
+        // 不拦住就会拿“半应用”的状态回写文件，反而破坏已保存的参数。
+        if (_loadingSettings) return;
         try
         {
             Directory.CreateDirectory(AppDataDir);
@@ -782,8 +854,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 AngleEnd = SldAngleEnd?.Value ?? 180,
                 AngleStep = SldAngleStep?.Value ?? 1,
                 Threshold = SldThreshold?.Value ?? 0.50,
-                Overlap = SldOverlap?.Value ?? 0.25,
-                TopN = SldTopN?.Value ?? 10,
+                Overlap = SldOverlap?.Value ?? 0.10,
+                TopN = SldTopN?.Value ?? 200,
                 PyramidLevel = (int)System.Math.Round(SldPyramid?.Value ?? 4),
                 Contour = ChkContour?.IsChecked == true,
                 ContourBlur = SldContourBlur?.Value ?? 1,
@@ -802,6 +874,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         try
         {
             _suppressAutoMatch = true;
+            _loadingSettings = true;
             if (!File.Exists(SettingsFile)) return;
             var s = JsonSerializer.Deserialize<MatchSettings>(File.ReadAllText(SettingsFile));
             if (s == null) return;
@@ -840,7 +913,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             if (s.Contour && _matcher.Template != null) RefreshTemplateVisuals();
         }
         catch { /* ignore */ }
-        finally { _suppressAutoMatch = false; }
+        finally { _suppressAutoMatch = false; _loadingSettings = false; }
     }
 
     private void SaveLastFolder()
@@ -882,6 +955,17 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             if (File.Exists(LastFolderFile))
             {
                 var folder = File.ReadAllText(LastFolderFile).Trim();
+                if (!Directory.Exists(folder))
+                {
+                    // 兼容历史版本写下的非 UTF-8（GBK）路径
+                    try
+                    {
+                        var raw = File.ReadAllBytes(LastFolderFile);
+                        var legacy = System.Text.Encoding.Default.GetString(raw).Trim();
+                        if (Directory.Exists(legacy)) folder = legacy;
+                    }
+                    catch { }
+                }
                 if (Directory.Exists(folder))
                     await OpenFolderAsync(folder);
             }

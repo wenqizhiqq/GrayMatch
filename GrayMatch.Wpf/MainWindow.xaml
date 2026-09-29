@@ -464,16 +464,16 @@
                             <Slider x:Name="SldThreshold" Style="{StaticResource ModernSlider}" Minimum="0" Maximum="1" Value="0.50" TickFrequency="0.01"
                                     IsSnapToTickEnabled="True" LargeChange="0.05" SmallChange="0.01"
                                     ValueChanged="MatchParam_Changed"
-                                    ToolTip="越高越严格，匹配数量越少。反光/细笔画图建议 0.40 以上。"/>
+                                    ToolTip="越高越严格，匹配数量越少。有遮挡/重叠的目标：阈值越高越容易整片漏掉，实测 0.80 常常一个都找不到，建议 0.40~0.60 起调。"/>
 
                             <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
                                 <TextBlock Text="最大允许重叠 0~1" Style="{StaticResource CompactText}" VerticalAlignment="Center"/>
-                                <TextBlock x:Name="TbOverlapVal" Text="0.25" Style="{StaticResource ValueText}"/>
+                                <TextBlock x:Name="TbOverlapVal" Text="0.10" Style="{StaticResource ValueText}"/>
                             </StackPanel>
-                            <Slider x:Name="SldOverlap" Style="{StaticResource ModernSlider}" Minimum="0" Maximum="1" Value="0.25" TickFrequency="0.01"
+                            <Slider x:Name="SldOverlap" Style="{StaticResource ModernSlider}" Minimum="0" Maximum="1" Value="0.10" TickFrequency="0.01"
                                     IsSnapToTickEnabled="True" LargeChange="0.05" SmallChange="0.01"
                                     ValueChanged="MatchParam_Changed"
-                                    ToolTip="两个候选框重叠超过该比例时只保留分数高的。越大越宽松。"/>
+                                    ToolTip="两个候选框重叠超过该比例时只保留分数高的。默认 0.10：只有几乎同一个位置的重复框才被去掉，互相压住/挨着的目标仍会各自检出；调大更宽松。"/>
 
                             <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
                                 <TextBlock Text="最多输出匹配结果数量" Style="{StaticResource CompactText}" VerticalAlignment="Center"/>
@@ -495,13 +495,13 @@
 
                             <Button x:Name="BtnMatchDefaults" Style="{StaticResource LinkButton}" Margin="0,4,0,2"
                                     Click="BtnMatchDefaults_Click"
-                                    ToolTip="将上方所有匹配参数恢复为推荐默认值（-180~180°, 步长1, 阈值0.50, 重叠0.25, TopN10, 金字塔4）">
+                                    ToolTip="将上方所有匹配参数恢复为推荐默认值（-180~180°, 步长1, 阈值0.50, 重叠0.10, TopN200, 金字塔4, 密集模式勾选）">
                                 <TextBlock Text="恢复默认匹配参数" VerticalAlignment="Center" FontSize="11"/>
                             </Button>
 
-                            <CheckBox x:Name="ChkDense" Content="密集模式（适合规则阵列）" IsChecked="False"
+                            <CheckBox x:Name="ChkDense" Content="密集模式（适合规则阵列）" IsChecked="True"
                                       ToolTip="默认不勾选（快速）：种子上限 24，稀疏/普通图几毫秒（实测 ±45°≈5ms），但规则阵列里的大部分重复目标会被漏检，只保留少量代表。&#10;勾选（规则阵列）：粗扫不限制种子数量，可把焊球阵列等成百上千个相同目标全部检出；代价是密集图上耗时会升到十几毫秒（实测 ±45°≈15ms、全 360°≈38ms）。"/>
-                            <TextBlock Text="默认不勾选=快速; 规则阵列/密集图才勾选=全检出(较慢)" Style="{StaticResource CompactText}" Foreground="#A1A1A6" Margin="0,0,0,2"/>
+                            <TextBlock Text="默认勾选=全检出（重叠/密集目标都各自检出）; 取消=更快但可能漏检" Style="{StaticResource CompactText}" Foreground="#A1A1A6" Margin="0,0,0,2"/>
 
                             <CheckBox x:Name="ChkContour" Content="轮廓匹配（抗光照变化，绿色轮廓线）" IsChecked="False"
                                       ToolTip="勾选后，匹配改用「边缘梯度图」（Sobel 梯度幅度）代替灰度图，对光照变化、前景背景灰度接近、以及纯形状轮廓（与纹理无关）的图案更鲁棒。&#10;找到的每个目标会用绿色轮廓线画出模板的真实形状（绿框照常显示）。&#10;注意：轮廓匹配会自动忽略「金字塔层级」（边缘图下采样会抹糊细边），建议把 NCC 阈值提高到 0.40 以上，否则容易出现假阳性。"/>
@@ -709,26 +709,18 @@
         <!-- 图像显示画布：滚轮缩放 / 中键拖动平移 / 双击复位（替代原 Viewbox 自适应） -->
         <Border Grid.Column="1" Grid.Row="1" Background="#1D1D1F">
             <Grid>
-                <ScrollViewer x:Name="ImageViewport"
-                              Background="#1D1D1F"
-                              HorizontalScrollBarVisibility="Hidden"
-                              VerticalScrollBarVisibility="Hidden"
-                              HorizontalContentAlignment="Center"
-                              VerticalContentAlignment="Center"
-                              MouseWheel="ImageArea_MouseWheel"
-                              MouseDown="ImageArea_MouseDown"
-                              MouseMove="ImageArea_MouseMove"
-                              MouseUp="ImageArea_MouseUp"
-                              Loaded="ImageViewer_Loaded">
+                <!-- 固定自适应显示：Viewbox 让整幅图始终铺满并居中，不提供缩放/平移 -->
+                <Viewbox x:Name="ImageViewport"
+                         Stretch="Uniform"
+                         StretchDirection="Both"
+                         ClipToBounds="True"
+                         Loaded="ImageViewer_Loaded">
                     <Grid x:Name="ImageGrid"
                           Cursor="Cross"
                           MouseLeftButtonDown="ImageGrid_MouseLeftButtonDown"
                           MouseMove="ImageGrid_MouseMove"
                           MouseLeftButtonUp="ImageGrid_MouseLeftButtonUp"
-                          SizeChanged="ImageGrid_SizeChanged">
-                        <Grid.LayoutTransform>
-                            <ScaleTransform x:Name="ImageScale" ScaleX="1" ScaleY="1"/>
-                        </Grid.LayoutTransform>
+>
                     <Image x:Name="SourceImage" Source="{Binding SourceBitmap}" Stretch="None"/>
                     <Canvas IsHitTestVisible="False">
                         <!-- ROI选择框 -->
@@ -815,8 +807,8 @@
                         </ItemsControl>
                     </Canvas>
                     </Grid>
-                </ScrollViewer>
-                <TextBlock Text="滚轮缩放 · 中键拖动平移 · 双击复位"
+                </Viewbox>
+                <TextBlock Text="整幅自适应显示 · 拖框选模板"
                            Foreground="White" Opacity="0.55" FontSize="12"
                            HorizontalAlignment="Right" VerticalAlignment="Bottom"
                            Margin="10" IsHitTestVisible="False"/>

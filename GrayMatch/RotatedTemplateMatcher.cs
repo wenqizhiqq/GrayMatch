@@ -145,6 +145,38 @@ public class RotatedTemplateMatcher : IDisposable
         }
     }
 
+    /// <summary>
+    /// 用“已经解码好的图像”装载图源。
+    /// OpenCV 读不出来的格式（GIF / 部分 WebP）由上层用 WPF（WIC）解码后走这里，
+    /// 保证匹配内核本身只依赖 OpenCvSharp。
+    /// </summary>
+    public void LoadSource(Mat decoded, string originPath)
+    {
+        if (decoded == null || decoded.Empty())
+            throw new ArgumentException("decoded image is empty.", nameof(decoded));
+
+        _dataLock.Wait();
+        try
+        {
+            DisposeSource();
+            _source = decoded.Clone();
+            if (_source.Channels() == 1)
+            {
+                _sourceGray = _source.Clone();
+            }
+            else
+            {
+                _sourceGray = new Mat();
+                Cv2.CvtColor(_source, _sourceGray, ColorConversionCodes.BGR2GRAY);
+            }
+            if (UseContour) _sourceContour = MakeContour(_sourceGray);
+        }
+        finally
+        {
+            _dataLock.Release();
+        }
+    }
+
     public void SetSource(Mat image)
     {
         _dataLock.Wait();
