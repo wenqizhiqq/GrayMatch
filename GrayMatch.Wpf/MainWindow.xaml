@@ -706,15 +706,31 @@
             </ScrollViewer>
         </Border>
 
-        <!-- 图像显示画布：滚轮缩放 / 中键拖动平移 / 双击复位（替代原 Viewbox 自适应） -->
+        <!-- 图像显示画布：滚轮缩放 / 中键拖动平移 / 中键双击复位 -->
         <Border Grid.Column="1" Grid.Row="1" Background="#1D1D1F">
-            <Grid>
-                <!-- 固定自适应显示：Viewbox 让整幅图始终铺满并居中，不提供缩放/平移 -->
+            <!-- ImageArea 本身不缩放，只负责裁剪被变换过的 Viewbox；
+                 Background 必须非 null，否则图以外的空白处收不到鼠标事件。 -->
+            <Grid x:Name="ImageArea"
+                  Background="Transparent"
+                  ClipToBounds="True"
+                  MouseWheel="ImageArea_MouseWheel"
+                  MouseDown="ImageArea_MouseDown"
+                  MouseMove="ImageArea_MouseMove"
+                  MouseUp="ImageArea_MouseUp"
+                  SizeChanged="ImageArea_SizeChanged">
+                <!-- Viewbox 继续做“整幅自适应”，缩放/平移叠在它的 RenderTransform 上（相对自适应的倍数） -->
                 <Viewbox x:Name="ImageViewport"
                          Stretch="Uniform"
                          StretchDirection="Both"
                          ClipToBounds="True"
+                         RenderTransformOrigin="0,0"
                          Loaded="ImageViewer_Loaded">
+                    <Viewbox.RenderTransform>
+                        <TransformGroup>
+                            <ScaleTransform x:Name="ImageZoom" ScaleX="1" ScaleY="1"/>
+                            <TranslateTransform x:Name="ImagePan" X="0" Y="0"/>
+                        </TransformGroup>
+                    </Viewbox.RenderTransform>
                     <Grid x:Name="ImageGrid"
                           Cursor="Cross"
                           MouseLeftButtonDown="ImageGrid_MouseLeftButtonDown"
@@ -808,7 +824,7 @@
                     </Canvas>
                     </Grid>
                 </Viewbox>
-                <TextBlock Text="整幅自适应显示 · 拖框选模板"
+                <TextBlock Text="滚轮缩放 · 中键拖动平移 · 中键双击复位 · 左键拖框选模板"
                            Foreground="White" Opacity="0.55" FontSize="12"
                            HorizontalAlignment="Right" VerticalAlignment="Bottom"
                            Margin="10" IsHitTestVisible="False"/>
