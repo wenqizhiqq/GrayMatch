@@ -477,12 +477,12 @@
 
                             <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
                                 <TextBlock Text="最多输出匹配结果数量" Style="{StaticResource CompactText}" VerticalAlignment="Center"/>
-                                <TextBlock x:Name="TbTopNVal" Text="10" Style="{StaticResource ValueText}"/>
+                                <TextBlock x:Name="TbTopNVal" Text="291" Style="{StaticResource ValueText}"/>
                             </StackPanel>
-                            <Slider x:Name="SldTopN" Style="{StaticResource ModernSlider}" Minimum="1" Maximum="500" Value="10" TickFrequency="1"
+                            <Slider x:Name="SldTopN" Style="{StaticResource ModernSlider}" Minimum="1" Maximum="500" Value="291" TickFrequency="1"
                                     IsSnapToTickEnabled="True" LargeChange="10" SmallChange="1"
                                     ValueChanged="MatchParam_Changed"
-                                    ToolTip="超过该数量就不再输出后续结果。密集阵列可调到 200。"/>
+                                    ToolTip="超过该数量就不再输出后续结果。默认 291：足够覆盖规则阵列/密集目标，又不至于把无关的低分候选一起画出来。"/>
 
                             <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
                                 <TextBlock Text="金字塔层级 0~6" Style="{StaticResource CompactText}" VerticalAlignment="Center"/>
@@ -495,12 +495,12 @@
 
                             <Button x:Name="BtnMatchDefaults" Style="{StaticResource LinkButton}" Margin="0,4,0,2"
                                     Click="BtnMatchDefaults_Click"
-                                    ToolTip="将上方所有匹配参数恢复为推荐默认值（-180~180°, 步长1, 阈值0.50, 重叠0.10, TopN200, 金字塔4, 密集模式勾选）">
+                                    ToolTip="将上方所有匹配参数恢复为推荐默认值（-180~180°, 步长1, 阈值0.50, 重叠0.10, TopN291, 金字塔4, 密集模式勾选, 轮廓匹配不勾选）">
                                 <TextBlock Text="恢复默认匹配参数" VerticalAlignment="Center" FontSize="11"/>
                             </Button>
 
                             <CheckBox x:Name="ChkDense" Content="密集模式（适合规则阵列）" IsChecked="True"
-                                      ToolTip="默认不勾选（快速）：种子上限 24，稀疏/普通图几毫秒（实测 ±45°≈5ms），但规则阵列里的大部分重复目标会被漏检，只保留少量代表。&#10;勾选（规则阵列）：粗扫不限制种子数量，可把焊球阵列等成百上千个相同目标全部检出；代价是密集图上耗时会升到十几毫秒（实测 ±45°≈15ms、全 360°≈38ms）。"/>
+                                      ToolTip="默认勾选（全检出）：粗扫不限制种子数量，可把焊球阵列等成百上千个相同目标全部检出；代价是密集图上耗时会升到十几毫秒（实测 ±45°≈15ms、全 360°≈38ms）。&#10;取消勾选（快速）：种子上限 24，稀疏/普通图几毫秒（实测 ±45°≈5ms），但规则阵列里的大部分重复目标会被漏检，只保留少量代表。"/>
                             <TextBlock Text="默认勾选=全检出（重叠/密集目标都各自检出）; 取消=更快但可能漏检" Style="{StaticResource CompactText}" Foreground="#A1A1A6" Margin="0,0,0,2"/>
 
                             <CheckBox x:Name="ChkContour" Content="轮廓匹配（抗光照变化，绿色轮廓线）" IsChecked="False"

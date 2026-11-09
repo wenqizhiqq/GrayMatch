@@ -64,12 +64,16 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         LoadComputerConfig();
         UpdateInfluenceFactors();
 
-        // Defaults: dense mode ON, NCC similarity threshold 0.80.
+        // Defaults（与「恢复默认匹配参数」一致）:
+        // -180~180°、步长 1°、NCC 0.50、重叠 0.10、TopN 291、金字塔 4、密集模式勾选、轮廓匹配不勾选。
         // Set explicitly here (not only in XAML) so the defaults cannot be lost.
         // ApplyPersistedSettings() later overrides them with the user-saved values.
         SldThreshold.Value = 0.50;
         TbThresholdVal.Text = "0.50";
+        SldTopN.Value = 291;
+        TbTopNVal.Text = "291";
         ChkDense.IsChecked = true;
+        ChkContour.IsChecked = false;
 
         Title = "旋转不变 NCC 匹配器 — WPF 演示 · " + GrayMatch.CodeMeta.Signature;
         StatusText = "已经准备好了，可以开始 · 温启志◆编写◇微信﹕187◆1936◇1399";
@@ -211,8 +215,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         SldAngleStep.Value = 1;
         SldThreshold.Value = 0.50;
         SldOverlap.Value = 0.10;
-        SldTopN.Value = 200;
+        SldTopN.Value = 291;
         SldPyramid.Value = 4;
+        ChkDense.IsChecked = true;
+        ChkContour.IsChecked = false;
         _suppressAutoMatch = false;
         ScheduleAutoMatch();
     }
@@ -784,12 +790,12 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         public double AngleStep { get; set; } = 1;
         public double Threshold { get; set; } = 0.50;
         public double Overlap { get; set; } = 0.10;
-        public double TopN { get; set; } = 200;
+        public double TopN { get; set; } = 291;
         public int PyramidLevel { get; set; } = 4;
         public bool Contour { get; set; }
         public double ContourBlur { get; set; } = 1;
         public int ContourThreshold { get; set; } = 30;
-        public bool Dense { get; set; }
+        public bool Dense { get; set; } = true;
         public bool Defect { get; set; }
         public double ScaleRange { get; set; }
     }
@@ -855,7 +861,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 AngleStep = SldAngleStep?.Value ?? 1,
                 Threshold = SldThreshold?.Value ?? 0.50,
                 Overlap = SldOverlap?.Value ?? 0.10,
-                TopN = SldTopN?.Value ?? 200,
+                TopN = SldTopN?.Value ?? 291,
                 PyramidLevel = (int)System.Math.Round(SldPyramid?.Value ?? 4),
                 Contour = ChkContour?.IsChecked == true,
                 ContourBlur = SldContourBlur?.Value ?? 1,
