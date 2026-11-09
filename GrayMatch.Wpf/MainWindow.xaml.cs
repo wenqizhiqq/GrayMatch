@@ -58,6 +58,12 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
     public MainWindow()
     {
+        // InitializeComponent 解析 XAML 时就会触发 Slider.ValueChanged / CheckBox.Checked，
+        // 那一刻命名字段还没全部创建，SaveSettings() 会用“半初始化 + 默认值”把用户已保存的
+        // settings.json 覆盖掉（Dense 甚至因为 ChkDense==null 被误写成 false）。
+        // 所以在解析之前先竖旗，构造末尾再放行。
+        _loadingSettings = true;
+
         InitializeComponent();
         DataContext = this;
         WireEvents();
@@ -77,6 +83,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
         Title = "旋转不变 NCC 匹配器 — WPF 演示 · " + GrayMatch.CodeMeta.Signature;
         StatusText = "已经准备好了，可以开始 · 温启志◆编写◇微信﹕187◆1936◇1399";
+
+        _loadingSettings = false;   // 参数控件已就绪，之后任何改动才允许回写
         _ = LoadPersistedStateAsync();
     }
 
@@ -174,6 +182,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private void ChkDense_Changed(object sender, RoutedEventArgs e)
     {
         SaveSettings();
+        ScheduleAutoMatch();
     }
 
     private void MatchParam_Changed(object sender, RoutedPropertyChangedEventArgs<double> e)
@@ -220,6 +229,9 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         ChkDense.IsChecked = true;
         ChkContour.IsChecked = false;
         _suppressAutoMatch = false;
+        // _suppressAutoMatch 期间滑块的 ValueChanged 被拦掉（不会写盘），所以这里显式存一次，
+        // 否则点「恢复默认」后重启会又回到旧参数。
+        SaveSettings();
         ScheduleAutoMatch();
     }
 
@@ -782,9 +794,14 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private static readonly string TemplateFile = Path.Combine(AppDataDir, "template.png");
     private static readonly string SettingsFile = Path.Combine(AppDataDir, "settings.json");
 
-    // 所有匹配/轮廓参数自动保存自动载入；JSON 仅存 UI 控件的值，启动时回填控件即可。
+    // 配置版本：1（或缺失）= 老文件。老文件里的 Dense 可能是「初始化时 ChkDense 还不存在」
+    // 被误写成 false 的结果，所以升级到 2 时统一回到推荐默认（勾选）。
+    private const int CurrentSchemaVersion = 2;
+
+    // 所有匹配/轮廓/缺陷参数自动保存自动载入；JSON 仅存 UI 控件的值，启动时回填控件即可。
     private sealed class MatchSettings
     {
+        public int SchemaVersion { get; set; }
         public double AngleStart { get; set; } = -180;
         public double AngleEnd { get; set; } = 180;
         public double AngleStep { get; set; } = 1;
@@ -798,6 +815,15 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         public bool Dense { get; set; } = true;
         public bool Defect { get; set; }
         public double ScaleRange { get; set; }
+
+        // 缺陷检测参数（7 项全部持久化）
+        public double DefectDiff { get; set; } = 45;
+        public double DefectEdgeTol { get; set; } = 0;
+        public double DefectEdgeGrad { get; set; } = 30;
+        public double DefectErode { get; set; } = 2;
+        public double DefectDilate { get; set; } = 3;
+        public double DefectMinArea { get; set; } = 0.4;
+        public double DefectGlobal { get; set; } = 28;
     }
 
     /// <summary>
@@ -856,6 +882,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             Directory.CreateDirectory(AppDataDir);
             var s = new MatchSettings
             {
+                SchemaVersion = CurrentSchemaVersion,
                 AngleStart = SldAngleStart?.Value ?? -180,
                 AngleEnd = SldAngleEnd?.Value ?? 180,
                 AngleStep = SldAngleStep?.Value ?? 1,
@@ -866,9 +893,16 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 Contour = ChkContour?.IsChecked == true,
                 ContourBlur = SldContourBlur?.Value ?? 1,
                 ContourThreshold = (int)(SldContourThreshold?.Value ?? 30),
-                Dense = ChkDense?.IsChecked == true,
+                Dense = ChkDense?.IsChecked ?? true,   // 控件还没创建时按“默认勾选”记，绝不写 false
                 Defect = ChkDefect?.IsChecked == true,
                 ScaleRange = SldScaleRange?.Value ?? 0,
+                DefectDiff = SldDefectDiff?.Value ?? 45,
+                DefectEdgeTol = SldDefectEdgeTol?.Value ?? 0,
+                DefectEdgeGrad = SldDefectEdgeGrad?.Value ?? 30,
+                DefectErode = SldDefectErode?.Value ?? 2,
+                DefectDilate = SldDefectDilate?.Value ?? 3,
+                DefectMinArea = SldDefectMinArea?.Value ?? 0.4,
+                DefectGlobal = SldDefectGlobal?.Value ?? 28,
             };
             File.WriteAllText(SettingsFile, JsonSerializer.Serialize(s, new JsonSerializerOptions { WriteIndented = true }));
         }
@@ -877,6 +911,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
     private void ApplyPersistedSettings()
     {
+        bool needRewrite = false;
         try
         {
             _suppressAutoMatch = true;
@@ -884,6 +919,15 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             if (!File.Exists(SettingsFile)) return;
             var s = JsonSerializer.Deserialize<MatchSettings>(File.ReadAllText(SettingsFile));
             if (s == null) return;
+
+            // 老配置升级：v1 从不写 SchemaVersion，且当年的 Dense 是「ChkDense 还没创建」
+            // 被误写成 false 的，所以升级时统一回到推荐默认（勾选）；用户之后再取消会被正常记住。
+            if (s.SchemaVersion < CurrentSchemaVersion)
+            {
+                s.Dense = true;
+                s.SchemaVersion = CurrentSchemaVersion;
+                needRewrite = true;
+            }
 
             SldAngleStart.Value = s.AngleStart;
             SldAngleEnd.Value = s.AngleEnd;
@@ -905,6 +949,24 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             TbContourBlurVal.Text = s.ContourBlur.ToString("0");
             TbContourThresholdVal.Text = s.ContourThreshold.ToString();
             TbScaleRangeVal.Text = s.ScaleRange.ToString("0.00");
+
+            // 缺陷检测 7 个参数
+            SldDefectDiff.Value = s.DefectDiff;
+            SldDefectEdgeTol.Value = s.DefectEdgeTol;
+            SldDefectEdgeGrad.Value = s.DefectEdgeGrad;
+            SldDefectErode.Value = s.DefectErode;
+            SldDefectDilate.Value = s.DefectDilate;
+            SldDefectMinArea.Value = s.DefectMinArea;
+            SldDefectGlobal.Value = s.DefectGlobal;
+            ApplyDefectParams();    // 上面的赋值被 _suppressAutoMatch 拦住，这里补一次同步到 matcher
+            TbDefectDiffVal.Text = ((int)SldDefectDiff.Value).ToString();
+            TbDefectEdgeTolVal.Text = ((int)SldDefectEdgeTol.Value).ToString();
+            TbDefectEdgeGradVal.Text = ((int)SldDefectEdgeGrad.Value).ToString();
+            TbDefectErodeVal.Text = ((int)SldDefectErode.Value).ToString();
+            TbDefectDilateVal.Text = ((int)SldDefectDilate.Value).ToString();
+            TbDefectMinAreaVal.Text = SldDefectMinArea.Value.ToString("0.00");
+            TbDefectGlobalVal.Text = ((int)SldDefectGlobal.Value).ToString();
+
             ChkContour.IsChecked = s.Contour;
             ChkDense.IsChecked = s.Dense;
             ChkDefect.IsChecked = s.Defect;
@@ -920,6 +982,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         }
         catch { /* ignore */ }
         finally { _suppressAutoMatch = false; _loadingSettings = false; }
+
+        if (needRewrite) SaveSettings();   // 迁移后的配置按新格式落盘
     }
 
     private void SaveLastFolder()
@@ -977,6 +1041,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             }
         }
         catch { /* ignore */ }
+
+        // 无论新旧配置，启动完成时都落一次盘：首次运行会生成完整 settings.json，
+        // 老文件则升级到当前 SchemaVersion，保证下次启动读到的参数就是眼前这份。
+        SaveSettings();
     }
 
     #endregion

@@ -81,6 +81,7 @@ public partial class MainWindow
     {
         if (_suppressAutoMatch) return;
         ApplyDefectParams();
+        SaveSettings();      // 缺陷参数同样自动保存
         ScheduleAutoMatch();
     }
 
@@ -94,6 +95,7 @@ public partial class MainWindow
         SldDefectMinArea.Value = 0.4;
         SldDefectGlobal.Value = 28;
         ApplyDefectParams();
+        SaveSettings();
         ScheduleAutoMatch();
         StatusText = "缂洪櫡鍙傛暟宸叉仮澶嶉粯璁?";
     }
